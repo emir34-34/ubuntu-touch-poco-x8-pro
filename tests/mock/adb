@@ -1,0 +1,28 @@
+#!/bin/bash
+# Fake adb for testing the release scripts without a phone. State in $MOCK_DIR.
+M=${MOCK_DIR:?}; echo "adb $*" >> $M/calls.log; mode=$(cat $M/mode)
+need_android() { [ "$mode" = android ] || { echo "error: no devices/emulators found" >&2; exit 1; }; }
+case "$1" in
+wait-for-device) need_android ;;
+get-state) need_android; echo device ;;
+pull) need_android; cp "$M/tmp/$(basename "$2")" "$3" || exit 1; echo "1 file pulled" ;;
+push) need_android; shift; args=("$@"); unset 'args[-1]'; for f in "${args[@]}"; do cp "$f" $M/sdcard/ || exit 1; done ;;
+reboot) need_android; case "$2" in fastboot) echo fastbootd > $M/mode;; bootloader) echo bootloader > $M/mode;; *) echo android > $M/mode;; esac ;;
+shell) need_android; shift; cmd="$*"
+  case "$cmd" in
+  "getprop ro.product.device") echo klee ;;
+  "getprop ro.boot.slot_suffix") echo _b ;;
+  "mkdir -p /sdcard/klee-ut") ;;
+  su\ -c*) inner=${cmd#su -c }; inner=${inner#\'}; inner=${inner%\'}
+     case "$inner" in
+     id) echo "uid=0(root) gid=0(root)" ;;
+     dd\ if=/dev/block/by-name/*) p=${inner#dd if=/dev/block/by-name/}; p=${p%% *}; [ -f $M/dev/$p ] || exit 1; o=${inner#*of=/data/local/tmp/}; o=${o%% *}; cp $M/dev/$p $M/tmp/$o ;;
+     rm\ -f*) f=${inner#rm -f /data/local/tmp/}; rm -f "$M/tmp/$f" ;;
+     lpdump*) cat $M/lpdump_b.txt ;;
+     "ls /dev/block/mapper/ut_data") grep -q "^ut_data " $M/logical ;;
+     *) echo "MOCK: unknown su cmd: $inner" >&2; exit 1 ;;
+     esac ;;
+  *) echo "MOCK: unknown shell cmd: $cmd" >&2; exit 1 ;;
+  esac ;;
+*) echo "MOCK: unknown adb cmd $*" >&2; exit 1 ;;
+esac

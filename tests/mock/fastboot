@@ -1,0 +1,27 @@
+#!/bin/bash
+# Fake fastboot for testing the release scripts without a phone. State in $MOCK_DIR.
+M=${MOCK_DIR:?}; echo "fastboot $*" >> $M/calls.log; mode=$(cat $M/mode)
+fb() { [ "$mode" = bootloader ] || [ "$mode" = fastbootd ] || { echo "< waiting for any device >" >&2; exit 1; }; }
+case "$1" in
+devices) fb 2>/dev/null && echo -e "MOCK123\tfastboot" ;;
+getvar) fb; case "$2" in
+  is-userspace) [ "$mode" = fastbootd ] && echo "is-userspace: yes" >&2 || echo "is-userspace: no" >&2 ;;
+  current-slot) echo "current-slot: b" >&2 ;;
+  snapshot-update-status) echo "snapshot-update-status: none" >&2 ;;
+  partition-size:userdata) echo "partition-size:userdata: 0x3A00000000" >&2 ;;
+  partition-size:*) n=${2#partition-size:}; grep -q "^$n " $M/logical && echo "$2: $(grep "^$n " $M/logical | cut -d' ' -f2)" >&2 ;;
+  esac ;;
+create-logical-partition) fb; [ "$mode" = fastbootd ] || { echo "FAILED (not userspace)" >&2; exit 1; }; grep -q "^$2 " $M/logical && { echo "FAILED exists" >&2; exit 1; }; echo "$2 $3" >> $M/logical ;;
+delete-logical-partition) fb; [ "$mode" = fastbootd ] || exit 1; grep -v "^$2 " $M/logical > $M/l2; mv $M/l2 $M/logical ;;
+flash) fb; p=$2; f=$3; [ -f "$f" ] || { echo "no file $f" >&2; exit 1; }
+   case "$p" in
+   ut_data) [ "$mode" = fastbootd ] && grep -q "^ut_data " $M/logical || { echo "FAILED: ut_data not found/not fastbootd" >&2; exit 1; }; simg2img "$f" $M/flashed/ut_data.raw ;;
+   userdata) [ "$mode" = bootloader ] || { echo "FAILED: userdata only from the bootloader" >&2; exit 1; }; simg2img "$f" $M/flashed/userdata.raw ;;
+   boot_a|boot_b|init_boot_a|init_boot_b) cp "$f" $M/flashed/$p; cp "$f" $M/dev/$p ;;
+   *) echo "MOCK refuse flash $p" >&2; exit 1 ;;
+   esac
+   echo "OKAY" ;;
+reboot) fb; case "$2" in fastboot) echo fastbootd > $M/mode;; bootloader) echo bootloader > $M/mode;; recovery) echo recovery > $M/mode;; *) echo android > $M/mode;; esac ;;
+boot) fb; echo "booted $2" >> $M/calls.log; echo android > $M/mode ;;
+*) echo "MOCK: unknown fastboot $*" >&2; exit 1 ;;
+esac

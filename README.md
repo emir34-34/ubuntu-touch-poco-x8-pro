@@ -41,7 +41,7 @@ and 12).
 | Halium 14 GSI container on an Android 16 vendor | ✅ with compatibility patches |
 | Display (composer3), Lomiri UI, brightness | ✅ see notes: `free()` shim, `mi_display` backlight |
 | Touch | ✅ |
-| Wi-Fi | ❌ does not work: `wlan0` appears (`/dev/wmtWifi`) but no connection was achieved |
+| Wi-Fi | ❌ did not work; the cause was found in the logs and a fix is in the source, untested ([details](docs/DEVELOPMENT-NOTES.md#why-wi-fi-did-not-work-log-analysis-2026-10-09)) |
 | Modem / SIM detection | ✅ ICCID read; calls and data not tested |
 | Battery (`mtk_battery_manager` CRC fix) | ✅ |
 | Reset after ~140 s (MediaTek MKP, `pid_max`) | ✅ fixed |
@@ -74,6 +74,7 @@ and 12).
 | `kernel/` | Patch against UBports `kernel-android-common` (`android15-6.6-halium`) (`klee-kernel.patch`), `klee.config`, base commit (`BASE_COMMIT`) |
 | `shims/` | glibc↔bionic shims: `klee_free.c` routes bionic memory away from glibc `free()`; GL and window debugging shims |
 | `host-tools/` | Host-side checkers: `kmi_check.py`, `abi_check.py`, `add_noop_syms.py`, `crc_check_module.py`, `payload_extract.py` and others |
+| `tests/` | `run-standalone-test.sh`: runs the standalone installer and `restore-android.sh` against a fake `adb`/`fastboot` (`tests/mock/`). No phone needed. |
 | `qemu-test/` | QEMU integration test with the real kernel, initramfs and rootfs plus Axion's vendor partitions |
 | `apps/android-reboot-ubuntu/` | "Switch to Ubuntu" Android app (`build.sh`, no Gradle) |
 | `release/` | User scripts: `install.sh`, `boot-ubuntu.sh`, `boot-axion.sh`, `uninstall.sh`, `collect-logs.sh`, plus `README.md` and `TECHNICAL-NOTES.md` |
@@ -116,8 +117,8 @@ Installation (dual boot or standalone) and switching steps: [release/README.md](
     rebooted during the write and fell into a BROM loop. The cause was not found.
   - (b) The slot method: an Axion copy plus the Ubuntu Touch boot images on the inactive slot `_a`.
 - **Audio:** vendor AIDL audio core v2/v3 ↔ pulseaudio-droid / audiosystem-passthrough.
-- **Wi-Fi:** `wlan0` comes up after writing `1` to `/dev/wmtWifi`, but Wi-Fi did not work in practice.
-  Not debugged yet (wpa_supplicant/NetworkManager vs. the MTK WLAN driver and firmware).
+- **Wi-Fi:** the chip was switched on too early, before the vendor NVRAM was loaded. The fixed
+  `wifi-on` script is in the source but untested; the v0.1 `ubuntu.img` still has the old one.
 - **Remaining hardware:** camera, fingerprint, calls and data, power management.
 
 ## Banners

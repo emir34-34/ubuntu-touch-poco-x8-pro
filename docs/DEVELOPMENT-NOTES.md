@@ -112,8 +112,7 @@ charger_framework's 0xb4dcf409, with the same signature.
   `ssh -p 8022`).
   - On the host, run `nmcli dev set <if> managed no` and assign `10.15.19.1/24`.
   - The GKI kernel has no RNDIS.
-- **Wi-Fi (NOT working):** writing `1` to `/dev/wmtWifi` brings up `wlan0` (`klee-wifi.service`),
-  but Wi-Fi did not actually work in Ubuntu Touch. Not debugged yet.
+- **Wi-Fi (NOT working):** see "Why Wi-Fi did not work" below.
 - **Power key:** during boot it triggered a logind poweroff. Fix: `HandlePowerKey=ignore`.
 - **Fastboot from Ubuntu Touch:** `systemctl reboot --reboot-argument=bootloader`.
 - **Updating the rootfs without flashing:**
@@ -243,3 +242,34 @@ Unknowns to check on a device:
 - whether the Xiaomi LK fastboot accepts a sparse `userdata` flash
 - that `resize2fs` in the initrd handles the large partition
 - that nothing in the Android container expects Android's `/data` layout
+
+## Why Wi-Fi did not work (log analysis, 2026-10-09)
+
+This was found afterwards in the debug dumps of the last boots (`klee-debug.service`, dmesg).
+The order of events in the kernel log was:
+
+| Time | Event |
+|---|---|
+| 16.20 s | The `wlan` driver creates `wlan0` right away. The netdev is persistent, so it exists before the chip is on. |
+| 16.68 s | `klee-wifi` writes `1` to `/dev/wmtWifi`. The driver answers `mtk_wland_thread_main: Invalid pointer` and `WMT turn on WIFI fail!`. |
+| 18.86 s | The vendor's `wlan_assistant` (in the Android container) hands over the Wi-Fi NVRAM: `wlanNvramBufHandler: Set NVRAM state[1]`. |
+| 19.77–22.43 s | connsys pre-calibration: the driver is probed (`wlanProbe: probe success`) and powered off again (`Wi-Fi power off done!`). |
+| afterwards | Nothing switches the chip on again. `wpa_supplicant` gets `driver is not ready` every 10 s. |
+
+**Root cause:** the old `wifi-on` script wrote `1` before the NVRAM was loaded. It then only
+checked that `wlan0` existed, which is always true, so it never retried.
+
+**Fix (in `port/overlay/system/usr/libexec/klee/wifi-on`, untested on the device):**
+1. wait for `Set NVRAM state[1]`
+2. wait for the pre-calibration power-off
+3. write `1`
+4. retry for as long as the driver logs `WMT turn on WIFI fail`
+
+`klee-wifi.service` now also starts after `lxc@android.service`.
+
+The `ubuntu.img` in the v0.1 release still has the old script. Rebuild the rootfs, or copy the
+new script to `/usr/libexec/klee/wifi-on` on the device.
+
+If it still fails, look at what Android's Wi-Fi HAL (`vendor.wifi_hal_legacy` /
+`android.hardware.wifi-service`) does differently. It may need more than the plain `1` write,
+e.g. setting the mode through `/dev/wmtWifi` or the `wlan_assistant` country code.

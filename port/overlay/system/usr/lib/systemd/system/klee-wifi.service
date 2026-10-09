@@ -1,6 +1,6 @@
 [Unit]
 Description=Power on the MediaTek Wi-Fi chip (Poco X8 Pro / klee)
-After=lxc-android-config.service
+After=lxc-android-config.service lxc@android.service
 
 [Service]
 Type=simple
