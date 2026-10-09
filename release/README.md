@@ -89,7 +89,7 @@ Start with the phone running Axion and USB debugging enabled.
   - a missing symbol was added to `libbinder_ndk.so`
   - VINTF 9.0 manifests are presented as 8.0
 
-  On the device this worked through the UI, Wi-Fi and modem detection. Other HALs are untested.
+  On the device this worked through the UI and modem detection; Wi-Fi did not work. Other HALs are untested.
 - Do not expect audio (AIDL audio HAL v2), camera, fingerprint or VoLTE to work on the first try.
   The goal was boot + display + touch + Wi-Fi first.
 

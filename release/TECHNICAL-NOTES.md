@@ -55,7 +55,8 @@ device afterwards, see [../docs/DEVELOPMENT-NOTES.md](../docs/DEVELOPMENT-NOTES.
 - **`/data`:** f2fs with metadata encryption (`/metadata/vold/metadata_encryption`), which Linux
   cannot read.
 - **Firmware path:** the LK cmdline passes `firmware_class.path=/vendor/firmware,/odm/firmware`.
-- **Wi-Fi:** writing `1` to `/dev/wmtWifi` brings up `wlan0` (`klee-wifi.service`).
+- **Wi-Fi:** writing `1` to `/dev/wmtWifi` brings up `wlan0` (`klee-wifi.service`). On the real
+  device Wi-Fi still did not work (see the development notes).
 - **USB networking:** the GKI kernel has no RNDIS but has NCM. usb-moded and the initrd telnet
   fall back to NCM.
 

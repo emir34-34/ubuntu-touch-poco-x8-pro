@@ -16,7 +16,7 @@ created in the free space of the `super` partition.
 | Halium 14 GSI container on an Android 16 vendor | ✅ with compatibility patches |
 | Display (composer3), Lomiri UI, brightness | ✅ see notes: `free()` shim, `mi_display` backlight |
 | Touch | ✅ |
-| Wi-Fi | ✅ (`/dev/wmtWifi`) |
+| Wi-Fi | ❌ does not work: `wlan0` appears (`/dev/wmtWifi`) but no connection was achieved |
 | Modem / SIM detection | ✅ ICCID read; calls and data not tested |
 | Battery (`mtk_battery_manager` CRC fix) | ✅ |
 | Reset after ~140 s (MediaTek MKP, `pid_max`) | ✅ fixed |
@@ -89,6 +89,8 @@ Installation and switching steps: [release/README.md](release/README.md).
     rebooted during the write and fell into a BROM loop. The cause was not found.
   - (b) The slot method: an Axion copy plus the Ubuntu Touch boot images on the inactive slot `_a`.
 - **Audio:** vendor AIDL audio core v2/v3 ↔ pulseaudio-droid / audiosystem-passthrough.
+- **Wi-Fi:** `wlan0` comes up after writing `1` to `/dev/wmtWifi`, but Wi-Fi did not work in practice.
+  Not debugged yet (wpa_supplicant/NetworkManager vs. the MTK WLAN driver and firmware).
 - **Remaining hardware:** camera, fingerprint, calls and data, power management.
 
 ## Credits

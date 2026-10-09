@@ -112,7 +112,8 @@ charger_framework's 0xb4dcf409, with the same signature.
   `ssh -p 8022`).
   - On the host, run `nmcli dev set <if> managed no` and assign `10.15.19.1/24`.
   - The GKI kernel has no RNDIS.
-- **Wi-Fi:** writing `1` to `/dev/wmtWifi` brings up `wlan0` (`klee-wifi.service`).
+- **Wi-Fi (NOT working):** writing `1` to `/dev/wmtWifi` brings up `wlan0` (`klee-wifi.service`),
+  but Wi-Fi did not actually work in Ubuntu Touch. Not debugged yet.
 - **Power key:** during boot it triggered a logind poweroff. Fix: `HandlePowerKey=ignore`.
 - **Fastboot from Ubuntu Touch:** `systemctl reboot --reboot-argument=bootloader`.
 - **Updating the rootfs without flashing:**
