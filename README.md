@@ -1,106 +1,106 @@
-# Ubuntu Touch — Poco X8 Pro (klee, MT6899)
+# Ubuntu Touch for the Poco X8 Pro (klee, MT6899)
 
-Xiaomi Poco X8 Pro (kod adı `klee`, model 2511FPC34G, MediaTek Dimensity / mt6899) için
-deneysel Ubuntu Touch portu. Android ROM (AxionAOSP, Android 16) ile **dual boot** olarak
-tasarlandı: `/data` silinmiyor, Ubuntu Touch super bölümündeki boş alanda açılan yeni bir
-mantıksal bölümde (`ut_data`) duruyor.
+This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `klee`, model
+2511FPC34G, MediaTek mt6899). It was built to **dual boot** with an Android ROM (AxionAOSP,
+Android 16). `/data` is never wiped: Ubuntu Touch lives in a new logical partition (`ut_data`)
+created in the free space of the `super` partition.
 
-> **Durum: ilk yazar tarafından bırakıldı (2026-10-08).** Kod, betikler ve tüm notlar
-> başkaları devam edebilsin diye burada. Pull request ve fork'lar memnuniyetle karşılanır.
+> **Status: abandoned by the original author (2026-10-08).** The code, scripts and all notes
+> are published here so that others can continue. Forks and pull requests are welcome.
 
-*English summary: experimental Ubuntu Touch (UBports halium-gki, Halium 14 GSI rootfs,
-android15-6.6-halium kernel) port for the Poco X8 Pro (klee). It boots to the Lomiri UI on
-real hardware with display, touch, Wi-Fi and modem detection. Dual-boot switching and the
-OrangeFox-based switcher were not finished. The original author stopped working on it; all
-sources and notes are here so others can continue. Docs are in Turkish; read
-[docs/GELISTIRME-NOTLARI.md](docs/GELISTIRME-NOTLARI.md) for the hard-won device details,
-**especially the IMEI/SELinux section before booting anything**.*
+## What worked on real hardware
 
-## Gerçek cihazda ne çalıştı
-
-| Parça | Durum |
+| Component | Status |
 |---|---|
-| Çekirdek (UBports `android15-6.6-halium`, 6.6.x GKI) + vendor modülleri | ✅ 592 modülde 0 KMI CRC uyumsuzluğu |
-| Halium 14 GSI konteyneri, Android 16 vendor ile | ✅ uyumluluk yamalarıyla |
-| Ekran (composer3), Lomiri arayüzü, parlaklık | ✅ (bkz. notlar: free() shim, `mi_display` backlight) |
-| Dokunmatik | ✅ |
+| Kernel (UBports `android15-6.6-halium`, 6.6.x GKI) + vendor modules | ✅ 0 KMI CRC mismatches across 592 modules |
+| Halium 14 GSI container on an Android 16 vendor | ✅ with compatibility patches |
+| Display (composer3), Lomiri UI, brightness | ✅ see notes: `free()` shim, `mi_display` backlight |
+| Touch | ✅ |
 | Wi-Fi | ✅ (`/dev/wmtWifi`) |
-| Modem / SIM algılama | ✅ ICCID okundu; arama/veri test edilmedi |
-| Pil (`mtk_battery_manager` CRC yaması) | ✅ |
-| ~140 sn'de reset (MediaTek MKP, pid_max) | ✅ çözüldü |
-| Ses, kamera, parmak izi, VoLTE | ❌ denenmedi |
-| Bilgisayarsız OS geçişi (OrangeFox üzerinden) | ❌ yarım; telefon BROM döngüsüne girdi |
+| Modem / SIM detection | ✅ ICCID read; calls and data not tested |
+| Battery (`mtk_battery_manager` CRC fix) | ✅ |
+| Reset after ~140 s (MediaTek MKP, `pid_max`) | ✅ fixed |
+| Audio, camera, fingerprint, VoLTE | ❌ not attempted |
+| Switching OS without a computer (via OrangeFox) | ❌ unfinished; the phone fell into a BROM loop |
 
-## ⚠️ Başlamadan önce okuyun
+## ⚠️ Read this before you start
 
-1. **IMEI riski:** UT'de SELinux kapalı. Android konteynerindeki modem servisleri
-   `protect_s`/`persist` içindeki dosyaları **etiketsiz** yeniden yazıyor; Android'e dönünce
-   modem çöküyor ve IMEI görünmüyor. Koruma iki katmanlı:
-   `port/overlay/.../klee-selinux-guard` (UT tarafı) ve `port/android-side/ksu-module`
-   (Android tarafı, KernelSU post-fs-data). İkisi olmadan UT'yi açmayın. Ayrıntılar notlarda.
-2. **IMEI/NVRAM bölümlerini yedekleyin** (`release/install.sh` bunu yapıyor:
-   nvram, nvdata, nvcfg, protect1/2, md_sec, persist, proinfo).
-3. Android açıkken **aktif slotun boot/init_boot bölümleri donanımsal yazma korumalı**
-   (UFS DATA PROTECT). Boot imajları yalnızca fastboot veya recovery'den yazılabiliyor.
-4. Bootloader (LK) hiç değiştirilmiyor; **Ses Kısma + Güç** ile her zaman fastboot'a girilebilir.
-   Her şey bozulursa oradan Android'in boot/init_boot/vendor_boot imajlarını geri yazın.
+1. **IMEI risk.** SELinux is off in Ubuntu Touch. The modem services in the Android container
+   rewrite files in `protect_s`/`persist` **without SELinux labels**. Back in Android the modem
+   then crashes and the IMEI disappears. There are two layers of protection:
+   - `port/overlay/.../klee-selinux-guard` on the Ubuntu Touch side
+   - `port/android-side/ksu-module` on the Android side (KernelSU post-fs-data)
 
-## Depo düzeni
+   Do not boot Ubuntu Touch without both. The details are in the development notes.
+2. **Back up the IMEI/NVRAM partitions.** `release/install.sh` does this: nvram, nvdata, nvcfg,
+   protect1/2, md_sec, persist and proinfo.
+3. While Android is running, the **active slot's `boot`/`init_boot` partitions are hardware
+   write-protected** (UFS DATA PROTECT). Boot images can only be written from fastboot or recovery.
+4. The bootloader (LK) is never modified, so **Volume Down + Power** always reaches fastboot.
+   If everything breaks, flash Android's `boot`/`init_boot`/`vendor_boot` images back from there.
 
-| Klasör | İçerik |
+## Repository layout
+
+| Directory | Contents |
 |---|---|
-| `port/` | Asıl port (UBports `halium-gki` şablonundan): `build-klee.sh`, `deviceinfo`, `klee.config`, `ramdisk-overlay/` (initramfs yamaları, slot farkındalıklı `sbin/lp-map`), `overlay/` (rootfs'a eklenen dosyalar, servisler), `rootfs-patches/`, `android-side/` (Android/OrangeFox tarafı betikler + KernelSU modülü), `tools/make-hybrid-vendor-boot-ramdisk.py` |
-| `kernel/` | UBports `kernel-android-common` (`android15-6.6-halium`) üzerine yama (`klee-kernel.patch`), `klee.config`, taban commit (`BASE_COMMIT`) |
-| `shims/` | glibc↔bionic köprüleri (`klee_free.c`: bionic belleğinin glibc `free()`'ye gitmesi; GL/pencere hata ayıklama shim'leri) |
-| `host-tools/` | Bilgisayar tarafı doğrulama araçları: `kmi_check.py`, `abi_check.py`, `add_noop_syms.py`, `crc_check_module.py`, `payload_extract.py` vb. |
-| `qemu-test/` | Gerçek çekirdek + initramfs + rootfs + Axion vendor bölümleriyle QEMU entegrasyon testi |
-| `apps/android-reboot-ubuntu/` | Android'den "Ubuntu'ya Geç" uygulaması (gradle'sız `build.sh`) |
-| `release/` | Kullanıcı betikleri: `install.sh`, `boot-ubuntu.sh`, `boot-axion.sh`, `uninstall.sh`, `collect-logs.sh`, `BENIOKU.md`, `TEKNIK-NOTLAR.md` |
-| `docs/` | **`GELISTIRME-NOTLARI.md`** — cihaz üzerinde öğrenilen her şey, kronolojik |
+| `port/` | The port itself, based on the UBports `halium-gki` template: `build-klee.sh`, `deviceinfo`, `klee.config`, `ramdisk-overlay/` (initramfs patches, slot-aware `sbin/lp-map`), `overlay/` (files and services added to the rootfs), `rootfs-patches/`, `android-side/` (Android/OrangeFox scripts and the KernelSU module), `tools/make-hybrid-vendor-boot-ramdisk.py` |
+| `kernel/` | Patch against UBports `kernel-android-common` (`android15-6.6-halium`) (`klee-kernel.patch`), `klee.config`, base commit (`BASE_COMMIT`) |
+| `shims/` | glibc↔bionic shims: `klee_free.c` routes bionic memory away from glibc `free()`; GL and window debugging shims |
+| `host-tools/` | Host-side checkers: `kmi_check.py`, `abi_check.py`, `add_noop_syms.py`, `crc_check_module.py`, `payload_extract.py` and others |
+| `qemu-test/` | QEMU integration test with the real kernel, initramfs and rootfs plus Axion's vendor partitions |
+| `apps/android-reboot-ubuntu/` | "Switch to Ubuntu" Android app (`build.sh`, no Gradle) |
+| `release/` | User scripts: `install.sh`, `boot-ubuntu.sh`, `boot-axion.sh`, `uninstall.sh`, `collect-logs.sh`, plus `README.md` and `TECHNICAL-NOTES.md` |
+| `docs/` | **`DEVELOPMENT-NOTES.md`**: everything learned on the device, in rough chronological order |
 
-Derlenmiş imajlar (`ut_boot.img`, `ut_init_boot.img`, `ubuntu.img`) bu depoda **yok**:
-boyutları büyük ve içlerinde geliştiricinin SSH anahtarı vardı. Kaynaktan derleyin.
+The built images (`ut_boot.img`, `ut_init_boot.img`, `ubuntu.img`) are **not** included. They
+are large and contained the developer's SSH key. Build them from source.
 
-## Derleme (özet)
+## Building (summary)
 
-Gerekenler: Linux, AOSP clang `r510928` (stok çekirdekle aynı), `sudo` (loop mount),
-`lz4`, `mkbootimg`/`avbtool` (betik indiriyor), UBports CI'dan Halium 14 rootfs
-(`halium-gki` → `devel-flashable-android14-6.1`).
+You need:
+- Linux
+- AOSP clang `r510928`, the same compiler as the stock kernel
+- `sudo`, for loop mounts
+- `lz4`
+- `mkbootimg`/`avbtool` (the build script downloads these)
+- the Halium 14 rootfs from UBports CI (`halium-gki` → `devel-flashable-android14-6.1`)
 
 ```sh
-# çekirdek
+# kernel
 git clone -b android15-6.6-halium https://gitlab.com/ubports/porting/community-ports/android12/generic/kernel-android-common.git ~/klee-ut/kernel
-cd ~/klee-ut/kernel && git checkout $(cut -d' ' -f1 /yol/kernel/BASE_COMMIT) && git apply /yol/kernel/klee-kernel.patch
+cd ~/klee-ut/kernel && git checkout $(cut -d' ' -f1 /path/to/kernel/BASE_COMMIT) && git apply /path/to/kernel/klee-kernel.patch
 
-# port (yolları build-klee.sh başındaki değişkenlerden ayarlayın; yolda boşluk olmasın)
+# port: adjust the path variables at the top of build-klee.sh; the paths must not contain spaces
 cp -r port ~/klee-ut/ubports-klee
-~/klee-ut/ubports-klee/build-klee.sh          # SKIP_KERNEL=1 / SKIP_ROOTFS=1 seçenekleri var
+~/klee-ut/ubports-klee/build-klee.sh          # supports SKIP_KERNEL=1 / SKIP_ROOTFS=1
 ```
 
-USB SSH için kendi anahtarınızı `port/overlay/system/etc/klee/authorized_keys` olarak koyun
-(UT açılınca `ssh -p 8022 root@10.15.19.82`, USB NCM).
+For SSH over USB, put your own public key in `port/overlay/system/etc/klee/authorized_keys`.
+Once Ubuntu Touch is up, connect with `ssh -p 8022 root@10.15.19.82` (USB NCM).
 
-Kurulum ve geçiş adımları: [release/BENIOKU.md](release/BENIOKU.md).
+Installation and switching steps: [release/README.md](release/README.md).
 
-## Sıradaki işler (devralacak kişi için)
+## Next steps (for whoever picks this up)
 
-- Bilgisayarsız geçiş: Android açıkken aktif slot boot'u yazılamıyor. Seçenekler:
-  (a) OrangeFox recovery üzerinden yazmak — `android-side/klee-switch.sh` + karma
-  vendor_boot (`tools/make-hybrid-vendor-boot-ramdisk.py`); son denemede yazma sırasında
-  telefon yeniden başlayıp BROM döngüsüne girdi, nedeni bulunamadı. (b) Slot yöntemi:
-  pasif slot `_a`'ya Axion kopyası + UT boot.
-- Ses (vendor AIDL audio core v2/v3 ↔ pulseaudio-droid / audiosystem-passthrough).
-- Kamera, parmak izi, arama/veri, güç yönetimi.
+- **Switching OS without a computer.** The active slot's `boot` partition cannot be written
+  while Android is running. Two options:
+  - (a) Write it from OrangeFox recovery, using `android-side/klee-switch.sh` and the hybrid
+    `vendor_boot` (`tools/make-hybrid-vendor-boot-ramdisk.py`). In the last attempt the phone
+    rebooted during the write and fell into a BROM loop. The cause was not found.
+  - (b) The slot method: an Axion copy plus the Ubuntu Touch boot images on the inactive slot `_a`.
+- **Audio:** vendor AIDL audio core v2/v3 ↔ pulseaudio-droid / audiosystem-passthrough.
+- **Remaining hardware:** camera, fingerprint, calls and data, power management.
 
-## Teşekkür
+## Credits
 
-UBports (halium-gki, kernel-android-common), Halium, OrangeFox klee bakımcıları,
-AxionAOSP klee bakımcısı.
+UBports (halium-gki, kernel-android-common), Halium, the OrangeFox klee maintainers and the
+AxionAOSP klee maintainer.
 
-## Lisans
+## License
 
-Bu depodaki klee'ye özgü kod, betikler ve araçlar GPL-2.0 ile paylaşılmıştır. UBports
-`halium-gki`'den gelen dosyalar (`port/build/`, ramdisk betiklerinin temeli) UBports'un kendi
-şartlarına tabidir (halium-gki `e05c1ebd0aab`, build alt deposu `78d5df8abeaa`). Çekirdek yaması GPL-2.0.
-`port/overlay/.../halium-overlay/system/lib64/` altındaki ikili dosyalar AOSP/LLVM
-kaynaklıdır (Apache-2.0); `libbinder_ndk.so` `host-tools/add_noop_syms.py` ile yamalanmıştır.
+The klee-specific code, scripts and tools in this repository are shared under GPL-2.0.
+- Files taken from UBports `halium-gki` (`port/build/` and the basis of the ramdisk scripts)
+  remain under UBports' own terms: halium-gki `e05c1ebd0aab`, build subrepository `78d5df8abeaa`.
+- The kernel patch is GPL-2.0.
+- The binaries under `port/overlay/.../halium-overlay/system/lib64/` come from AOSP/LLVM
+  (Apache-2.0). `libbinder_ndk.so` was patched with `host-tools/add_noop_syms.py`.

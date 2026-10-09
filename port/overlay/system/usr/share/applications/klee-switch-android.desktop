@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Android'e Geç
-Comment=Axion'a geri dön (OrangeFox üzerinden)
+Name=Switch to Android
+Comment=Go back to Axion (via OrangeFox)
 Exec=qmlscene /usr/share/klee-switch/main.qml android
 Icon=/usr/share/klee-switch/klee-android.svg
 Terminal=false

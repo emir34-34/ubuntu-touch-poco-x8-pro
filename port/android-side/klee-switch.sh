@@ -15,22 +15,22 @@ export PATH=/system/bin:/sbin:/bin:/system/xbin:$PATH
 D=/data/adb/klee
 LOG=$D/last-switch.log
 say() { echo "$*"; echo "$*" >> "$LOG" 2>/dev/null; }
-die() { say "HATA: $*"; exit 1; }
+die() { say "ERROR: $*"; exit 1; }
 
 case "${1:-}" in
 	ubuntu) NEW=ut; OLD=axion; NAME="Ubuntu Touch" ;;
 	android) NEW=axion; OLD=ut; NAME="Axion" ;;
-	*) echo "kullanım: $0 ubuntu|android"; exit 2 ;;
+	*) echo "usage: $0 ubuntu|android"; exit 2 ;;
 esac
 
-say "== $(date) hedef=$NAME"
+say "== $(date) target=$NAME"
 SLOT=$(getprop ro.boot.slot_suffix)
-case "$SLOT" in _a|_b) ;; *) die "etkin slot okunamadı ($SLOT)" ;; esac
-say "Etkin slot: $SLOT"
+case "$SLOT" in _a|_b) ;; *) die "could not read the active slot ($SLOT)" ;; esac
+say "Active slot: $SLOT"
 
-cd "$D" 2>/dev/null || die "$D bulunamadı"
-sha256sum -c SHA256SUMS >/dev/null 2>&1 || die "imaj dosyaları bozuk (SHA256 tutmuyor), hiçbir şey yazılmadı"
-say "İmajlar doğrulandı"
+cd "$D" 2>/dev/null || die "$D not found"
+sha256sum -c SHA256SUMS >/dev/null 2>&1 || die "image files are corrupt (SHA256 mismatch), nothing was written"
+say "Images verified"
 
 same() { # image partition: is the image already on the partition?
 	size=$(stat -c %s "$1")
@@ -41,26 +41,26 @@ same() { # image partition: is the image already on the partition?
 
 write_verify() { # image partition
 	part=/dev/block/by-name/$2$SLOT
-	[ -b "$part" ] || { say "bölüm yok: $part"; return 1; }
-	dd if="$1" of="$part" bs=1M conv=fsync 2>/dev/null || say "yazma hatası: $2$SLOT"
+	[ -b "$part" ] || { say "partition missing: $part"; return 1; }
+	dd if="$1" of="$part" bs=1M conv=fsync 2>/dev/null || say "write error: $2$SLOT"
 	sync
 	echo 3 > /proc/sys/vm/drop_caches
-	same "$1" "$2" || { say "doğrulama tutmadı: $2$SLOT"; return 1; }
-	say "$2$SLOT yazıldı ve doğrulandı"
+	same "$1" "$2" || { say "verification failed: $2$SLOT"; return 1; }
+	say "$2$SLOT written and verified"
 }
 
 if same ${NEW}_boot.img boot && same ${NEW}_init_boot.img init_boot; then
-	say "$NAME zaten kurulu, bir şey yazılmadı"
+	say "$NAME is already installed, nothing written"
 	exit 0
 fi
 
 if write_verify ${NEW}_boot.img boot && write_verify ${NEW}_init_boot.img init_boot; then
-	say "Tamam: telefon $NAME ile açılacak"
+	say "Done: the phone will boot $NAME"
 	exit 0
 fi
 
-say "Bir sorun oldu, önceki sistem geri yazılıyor..."
+say "Something went wrong, writing the previous system back..."
 if write_verify ${OLD}_boot.img boot && write_verify ${OLD}_init_boot.img init_boot; then
-	die "önceki sistem geri yüklendi, telefon onunla açılacak"
+	die "the previous system was restored, the phone will boot it"
 fi
-die "geri yükleme de doğrulanamadı! Telefonu KAPATMA, recovery'de kal ve bilgisayara bağla"
+die "the restore could not be verified either! Do NOT power off; stay in recovery and connect a computer"

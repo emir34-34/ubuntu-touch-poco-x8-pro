@@ -1,4 +1,4 @@
-// klee dual boot: "Android'e Geç" / "Recovery'ye Geç". The root work is done
+// klee dual boot: "Switch to Android" / "Switch to Recovery". The root work is done
 // by systemd units (klee-switch-android / klee-reboot-recovery) that polkit
 // lets the phone user start; this page only asks for confirmation.
 import QtQuick 2.12
@@ -28,7 +28,7 @@ MainView {
     Page {
         anchors.fill: parent
         header: PageHeader {
-            title: root.recovery ? "Recovery'ye Geç" : "Android'e Geç"
+            title: root.recovery ? "Switch to Recovery" : "Switch to Android"
         }
 
         Column {
@@ -42,8 +42,8 @@ MainView {
                 horizontalAlignment: Text.AlignHCenter
                 textSize: Label.Large
                 text: root.recovery
-                    ? "Telefon OrangeFox recovery ile yeniden başlar."
-                    : "Telefon OrangeFox'a yeniden başlar. Orada ekran kilidi PIN'ini gir, Axion otomatik kurulup açılır."
+                    ? "The phone restarts into OrangeFox recovery."
+                    : "The phone restarts into OrangeFox. Enter your lock screen PIN there; Axion is installed and started automatically."
             }
 
             Button {
@@ -52,14 +52,14 @@ MainView {
                 height: units.gu(7)
                 color: root.asked ? theme.palette.normal.negative : "#3DDC84"
                 text: root.asked ? "Emin misin? Tekrar dokun"
-                                 : (root.recovery ? "Recovery'ye geç" : "Android'e geç")
+                                 : (root.recovery ? "Switch to recovery" : "Switch to Android")
                 enabled: root.status === ""
                 onClicked: {
                     if (!root.asked) {
                         root.asked = true
                         return
                     }
-                    root.status = "Yeniden başlatılıyor..."
+                    root.status = "Restarting..."
                     py.start(root.recovery ? "klee-reboot-recovery.service"
                                            : "klee-switch-android.service")
                 }
@@ -68,7 +68,7 @@ MainView {
             Button {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width
-                text: "Vazgeç"
+                text: "Cancel"
                 visible: root.asked && root.status === ""
                 onClicked: root.asked = false
             }

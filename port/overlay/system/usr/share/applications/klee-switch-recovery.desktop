@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Recovery'ye Geç
-Comment=OrangeFox recovery ile yeniden başlat
+Name=Switch to Recovery
+Comment=Restart into OrangeFox recovery
 Exec=qmlscene /usr/share/klee-switch/main.qml recovery
 Icon=/usr/share/klee-switch/klee-recovery.svg
 Terminal=false

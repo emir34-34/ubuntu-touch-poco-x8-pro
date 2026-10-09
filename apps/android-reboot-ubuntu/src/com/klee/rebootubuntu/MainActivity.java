@@ -47,15 +47,15 @@ public class MainActivity extends Activity {
         root.addView(title);
 
         TextView info = new TextView(this);
-        info.setText("Telefon OrangeFox'a yeniden başlar. Orada ekran kilidi PIN'ini gir, "
-                + "Ubuntu Touch otomatik kurulup açılır.\n"
-                + "Axion'a dönmek için Ubuntu'daki \"Android'e Geç\" uygulamasını kullan.");
+        info.setText("The phone restarts into OrangeFox. Enter your lock screen PIN there; "
+                + "Ubuntu Touch is installed and started automatically.\n"
+                + "To go back to Axion, use the \"Switch to Android\" app in Ubuntu.");
         info.setGravity(Gravity.CENTER);
         info.setPadding(0, pad / 2, 0, pad);
         root.addView(info);
 
         go = new Button(this);
-        go.setText("Ubuntu'ya geç");
+        go.setText("Switch to Ubuntu");
         go.setTextSize(20);
         go.setBackgroundColor(Color.parseColor("#E95420"));
         go.setTextColor(Color.WHITE);
@@ -76,10 +76,10 @@ public class MainActivity extends Activity {
 
     private void confirm() {
         new AlertDialog.Builder(this)
-                .setTitle("Ubuntu Touch'a geçilsin mi?")
-                .setMessage("Telefon şimdi OrangeFox'a yeniden başlayacak. PIN'ini girmeyi unutma.")
-                .setPositiveButton("Geç", (d, w) -> run())
-                .setNegativeButton("Vazgeç", null)
+                .setTitle("Switch to Ubuntu Touch?")
+                .setMessage("The phone will now restart into OrangeFox. Remember to enter your PIN.")
+                .setPositiveButton("Switch", (d, w) -> run())
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -101,11 +101,11 @@ public class MainActivity extends Activity {
                 }
                 int rc = p.waitFor();
                 if (rc != 0) {
-                    append("(çıkış kodu " + rc + ")");
+                    append("(exit code " + rc + ")");
                 }
             } catch (Exception e) {
-                append("HATA: root çalıştırılamadı: " + e.getMessage());
-                append("KernelSU > Süper kullanıcı listesinden bu uygulamaya izin ver.");
+                append("ERROR: could not run root: " + e.getMessage());
+                append("Grant this app root in KernelSU > Superuser.");
             }
             ui.post(() -> go.setEnabled(true));
         }).start();
