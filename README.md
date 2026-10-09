@@ -15,6 +15,7 @@ This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `
 
 > **Status: abandoned by the original author (2026-10-08).** The code, scripts and all notes
 > are published here so that others can continue. Forks and pull requests are welcome.
+> Sister project: [One UI 8.5 DSU port for the Poco X8 Pro](https://github.com/emir34-34/oneui-poco-x8-pro).
 
 ![Ubuntu Touch running on the Poco X8 Pro: lock screen, launcher, settings and system information](docs/screenshots/overview.jpg)
 
