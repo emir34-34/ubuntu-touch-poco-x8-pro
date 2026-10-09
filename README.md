@@ -120,6 +120,15 @@ Installation (dual boot or standalone) and switching steps: [release/README.md](
   Not debugged yet (wpa_supplicant/NetworkManager vs. the MTK WLAN driver and firmware).
 - **Remaining hardware:** camera, fingerprint, calls and data, power management.
 
+## Banners
+
+The banner at the top was made with ChatGPT from the real screenshots. Two alternatives, free to
+use for posts about the project:
+
+| `docs/banner2.jpg` (Gemini) | `docs/banner3.png` (hand-made from video frames) |
+|---|---|
+| ![Banner 2](docs/banner2.jpg) | ![Banner 3](docs/banner3.png) |
+
 ## Credits
 
 UBports (halium-gki, kernel-android-common), Halium, the OrangeFox klee maintainers and the
