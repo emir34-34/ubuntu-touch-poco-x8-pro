@@ -14,6 +14,11 @@ This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `
 > **Status: abandoned by the original author (2026-10-08).** The code, scripts and all notes
 > are published here so that others can continue. Forks and pull requests are welcome.
 
+![Ubuntu Touch running on the Poco X8 Pro: lock screen, launcher, settings and system information](docs/screenshots/overview.jpg)
+
+*Lock screen, launcher, system settings and system information, from a video of the real
+device. Serial number and Wi-Fi MAC are hidden.*
+
 ## Disclaimer
 
 **Use this at your own risk.** This is an experimental, unfinished port. Flashing it can
@@ -56,6 +61,8 @@ and 12).
    write-protected** (UFS DATA PROTECT). Boot images can only be written from fastboot or recovery.
 4. The bootloader (LK) is never modified, so **Volume Down + Power** always reaches fastboot.
    If everything breaks, flash Android's `boot`/`init_boot`/`vendor_boot` images back from there.
+   Step-by-step recovery for every problem met during development:
+   [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## Repository layout
 
@@ -68,7 +75,7 @@ and 12).
 | `qemu-test/` | QEMU integration test with the real kernel, initramfs and rootfs plus Axion's vendor partitions |
 | `apps/android-reboot-ubuntu/` | "Switch to Ubuntu" Android app (`build.sh`, no Gradle) |
 | `release/` | User scripts: `install.sh`, `boot-ubuntu.sh`, `boot-axion.sh`, `uninstall.sh`, `collect-logs.sh`, plus `README.md` and `TECHNICAL-NOTES.md` |
-| `docs/` | **`DEVELOPMENT-NOTES.md`**: everything learned on the device, in rough chronological order |
+| `docs/` | **`DEVELOPMENT-NOTES.md`**: everything learned on the device, in rough chronological order. **`TROUBLESHOOTING.md`**: how to get out of a boot loop, lost IMEI and other problems. `screenshots/` |
 
 The built images (`ut_boot.img`, `ut_init_boot.img`, `ubuntu.img`) are **not** included. They
 are large and contained the developer's SSH key. Build them from source.
