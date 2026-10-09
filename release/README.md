@@ -1,6 +1,11 @@
-# Poco X8 Pro (klee): Ubuntu Touch dual boot
+# Poco X8 Pro (klee): installing Ubuntu Touch
 
-Axion and your /data are **never wiped or formatted**. Ubuntu Touch is installed into a new
+There are two ways to install:
+- **Dual boot** (`install.sh`): keeps Android. Described first, below.
+- **Standalone** (`install-standalone.sh`): replaces Android and erases its data. See
+  [Standalone install](#standalone-install-replaces-android).
+
+With the dual boot install, Axion and your /data are **never wiped or formatted**. Ubuntu Touch is installed into a new
 logical partition (`ut_data`) in the free space of the super partition. Switching between the two
 systems only swaps the active slot's `boot` + `init_boot` images.
 
@@ -20,7 +25,9 @@ The images are not in this repository. Build them with `port/build-klee.sh`; it 
 | `device/to-ubuntu.sh` | Switch to Ubuntu from the phone (Axion, root) |
 | `try-ubuntu-noflash.sh` | Experimental: tries to boot Ubuntu once without writing anything |
 | `collect-logs.sh` | Debug logs |
-| `uninstall.sh` | Removes Ubuntu Touch completely |
+| `uninstall.sh` | Removes the dual boot Ubuntu Touch completely |
+| `install-standalone.sh` | Standalone installer: replaces Android, **erases all Android data** |
+| `restore-android.sh` | Goes back from a standalone install to Android |
 
 ## Installation
 
@@ -41,6 +48,49 @@ Start with the phone running Axion and USB debugging enabled.
    Backups are saved to `backup-<date>/`, and `backup-latest` points to the newest one.
    - **Do not delete this folder.** You need it to return to Axion.
    - The same backups are also copied into `ut_data`.
+
+## Standalone install (replaces Android)
+
+**Not tested on a device. It erases all Android data**, including internal storage, photos,
+apps and chats. Copy everything you want to keep to a computer first.
+
+Ubuntu Touch gets the whole `userdata` partition, formatted as ext4, so there is far more room
+than with the dual boot install (which is limited to the free space in super). The kernel,
+ramdisk and rootfs are exactly the same as for dual boot. If the `ut_data` partition does not
+exist, the initramfs uses `userdata` instead, and only when `userdata` is ext4. Android's own
+encrypted userdata is refused, and the boot stops before anything is written.
+
+1. Boot into Android with USB debugging on, and grant root to the **Shell** app in KernelSU.
+   Root is only needed for the backups.
+2. Dry run first. It takes the backups and builds the image, but changes nothing on the phone:
+   ```
+   ./install-standalone.sh --dry-run
+   ```
+3. Real install:
+   ```
+   ./install-standalone.sh
+   ```
+   - It backs up `boot`, `init_boot` and the IMEI/NVRAM partitions to
+     `backup-standalone-<date>/`. **Copy this folder off the computer as well.**
+   - It asks you to type `ERASE` before it changes anything.
+   - Then it reboots into the bootloader, flashes `boot`/`init_boot`, writes Ubuntu Touch to
+     `userdata` and boots it.
+   - On the first boot the filesystem grows to fill the whole partition.
+
+If a dual boot `ut_data` partition already exists, the installer stops: the initramfs would keep
+using it. Run `./uninstall.sh` first.
+
+The IMEI warning applies here too: the SELinux guard service runs in standalone mode as well, but
+if you ever go back to Android, check the modem/IMEI first.
+
+**Back to Android:** enter the bootloader (Volume Down + Power, or
+`systemctl reboot --reboot-argument=bootloader` in Ubuntu Touch), then run:
+```
+./restore-android.sh backup-standalone-<date>
+```
+It flashes Android's `boot`/`init_boot` back and starts the recovery. There, choose **Format
+Data**, then reboot. Android starts with a fresh setup. The "Switch to Android" app inside Ubuntu
+Touch only works for the dual boot install.
 
 ## Switching systems
 

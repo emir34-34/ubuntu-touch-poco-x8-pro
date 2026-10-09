@@ -525,15 +525,25 @@ mountroot() {
 	ab_slot_suffix=$(grep -o 'androidboot\.slot_suffix = ".."' /proc/bootconfig 2>/dev/null | cut -d '"' -f2)
 	[ -z "$ab_slot_suffix" ] && ab_slot_suffix=$(grep -o 'androidboot\.slot_suffix=..' /proc/cmdline | tail -1 | cut -d "=" -f2)
 
-	# klee dual boot: the data partition is ALWAYS the ut_data logical
-	# partition. It is not taken from the kernel command line because the
-	# Xiaomi bootloader mangles boot.img cmdline arguments (seen on device:
-	# "datapart=/dev/mapper/ut_data" arrived as "/ut_data"). There is no
-	# fallback to Android's userdata: on klee it is metadata-encrypted f2fs
-	# that belongs to the other (Android) OS of the dual boot.
+	# klee: the data partition is not taken from the kernel command line
+	# because the Xiaomi bootloader mangles boot.img cmdline arguments (seen on
+	# device: "datapart=/dev/mapper/ut_data" arrived as "/ut_data").
+	#  - dual boot:  the ut_data logical partition in super
+	#  - standalone: userdata, but only after install-standalone.sh turned it
+	#    into ext4. Android's userdata is metadata-encrypted (no readable
+	#    filesystem), so the ext4 check below refuses it and stops the boot
+	#    before anything is written.
 	path=/dev/mapper/ut_data
 	if [ ! -e "$path" ]; then
-		halium_panic "data partition $path not found (create the ut_data logical partition)"
+		path=""
+		for p in $partlist; do
+			if [ -e "/dev/disk/by-partlabel/$p" ]; then
+				path="/dev/disk/by-partlabel/$p"
+				break
+			fi
+		done
+		[ -n "$path" ] || halium_panic "no data partition: neither ut_data nor userdata found"
+		tell_kmsg "no ut_data, standalone install: using $path"
 	fi
 
 	if [ -z "$path" ]; then

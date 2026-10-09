@@ -1,9 +1,15 @@
 # Ubuntu Touch for the Poco X8 Pro (klee, MT6899)
 
 This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `klee`, model
-2511FPC34G, MediaTek mt6899). It was built to **dual boot** with an Android ROM (AxionAOSP,
-Android 16). `/data` is never wiped: Ubuntu Touch lives in a new logical partition (`ut_data`)
-created in the free space of the `super` partition.
+2511FPC34G, MediaTek mt6899). There are two ways to install it:
+
+- **Dual boot** (`release/install.sh`, tested on the device): Ubuntu Touch sits next to an
+  Android ROM (AxionAOSP, Android 16). `/data` is never wiped. Ubuntu Touch lives in a new
+  logical partition (`ut_data`) created in the free space of the `super` partition.
+- **Standalone** (`release/install-standalone.sh`, **not tested on the device**): Ubuntu Touch
+  replaces Android. It gets the whole `userdata` partition as ext4, so **all Android data is
+  erased**. It uses the same kernel, ramdisk and rootfs as the dual boot install; only the
+  data partition differs. `release/restore-android.sh` goes back to Android.
 
 > **Status: abandoned by the original author (2026-10-08).** The code, scripts and all notes
 > are published here so that others can continue. Forks and pull requests are welcome.
@@ -78,7 +84,7 @@ cp -r port ~/klee-ut/ubports-klee
 For SSH over USB, put your own public key in `port/overlay/system/etc/klee/authorized_keys`.
 Once Ubuntu Touch is up, connect with `ssh -p 8022 root@10.15.19.82` (USB NCM).
 
-Installation and switching steps: [release/README.md](release/README.md).
+Installation (dual boot or standalone) and switching steps: [release/README.md](release/README.md).
 
 ## Next steps (for whoever picks this up)
 

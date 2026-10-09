@@ -226,3 +226,20 @@ or `lpmake`/`lptools` from Android, may be needed.
 
 Use `release/uninstall.sh`. A leftover `ut_data` is harmless; it takes ~3.2 GB of super. Before
 touching the super metadata, back up the `lpdump` output and the first 8 MiB of super.
+
+## Standalone install (added 2026-10-09, untested)
+
+`release/install-standalone.sh` installs Ubuntu Touch in place of Android. The only change to the
+port is in `port/ramdisk-overlay/scripts/halium` (`mountroot`): when `/dev/mapper/ut_data` does not
+exist, the initramfs takes `/dev/disk/by-partlabel/userdata`. The existing ext4 check still
+applies, so Android's metadata-encrypted userdata is never mounted or fsck'ed.
+
+The installer builds a 4 GiB ext4 image (same feature set as `ut_data`, because the initrd's
+e2fsck is 1.43) with `/ubuntu.img` at its root. It flashes the image as a sparse image to
+`userdata` from bootloader fastboot. `resize_userdata_if_needed` then grows it to the whole
+partition on the first boot.
+
+Unknowns to check on a device:
+- whether the Xiaomi LK fastboot accepts a sparse `userdata` flash
+- that `resize2fs` in the initrd handles the large partition
+- that nothing in the Android container expects Android's `/data` layout

@@ -8,6 +8,7 @@ deviceinfo_kernel_defconfig="gki_defconfig halium.config klee.config"
 # Dual boot: rootfs lives in /ubuntu.img on the "ut_data" logical partition in
 # super (userdata is metadata-encrypted and is never touched). The ramdisk
 # hardcodes /dev/mapper/ut_data: the Xiaomi LK mangles boot.img cmdline args.
+# Standalone install: no ut_data, the rootfs is on an ext4 userdata instead.
 # printk.devkmsg=on: keep initramfs/systemd kmsg lines in pstore for debugging.
 deviceinfo_kernel_cmdline="printk.devkmsg=on"
 deviceinfo_kernel_clang_compile="true"
