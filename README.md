@@ -1,3 +1,5 @@
+![Ubuntu Touch for Poco X8 Pro](docs/banner.png)
+
 # Ubuntu Touch for the Poco X8 Pro (klee, MT6899)
 
 This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `klee`, model
