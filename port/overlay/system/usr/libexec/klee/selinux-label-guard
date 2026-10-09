@@ -1,0 +1,125 @@
+#!/usr/bin/python3
+# klee: Ubuntu Touch runs the Android vendor services with SELinux disabled,
+# so every file the modem (ccci_fsd) or other vendor daemons create or
+# rewrite in the vendor data partitions has no security.selinux label. Back
+# in Android (enforcing) the modem then cannot touch them, asserts on boot
+# and the phone shows no IMEI. Give every unlabeled entry the label of its
+# parent directory (how these partitions are labeled), periodically and once
+# more when the service stops (shutdown / reboot to Android).
+import os
+import signal
+import subprocess
+import sys
+import time
+
+# mount point name in Android -> partition label
+ROOTS = {"protect_f": "protect1", "protect_s": "protect2", "nvdata": "nvdata",
+         "nvcfg": "nvcfg", "persist": "persist", "md_sec": "md_sec"}
+XATTR = "security.selinux"
+INTERVAL = 10
+stop = False
+
+
+def android_root():
+    try:
+        pid = subprocess.run(["lxc-info", "-n", "android", "-p", "-H"],
+                             capture_output=True, text=True, timeout=10).stdout.strip()
+        return f"/proc/{int(pid)}/root" if pid else None
+    except (ValueError, subprocess.SubprocessError, OSError):
+        return None
+
+
+def label(path):
+    try:
+        v = os.getxattr(path, XATTR, follow_symlinks=False)
+    except OSError:
+        return None
+    v = v.rstrip(b"\0")
+    return None if not v or b":unlabeled:" in v else v
+
+
+def sweep(base, tops=None):
+    """Label the unlabeled entries. base: the Android root (its /mnt/vendor
+    mounts are used); tops: {name: directory} to use instead."""
+    fixed = 0
+    for name in ROOTS:
+        top = tops.get(name) if tops else f"{base}/mnt/vendor/{name}"
+        if not top or not os.path.isdir(top):
+            continue
+        for d, dirs, files in os.walk(top):
+            plabel = label(d)
+            for e in dirs + files:
+                p = os.path.join(d, e)
+                if label(p) is not None:
+                    continue
+                show = name + p[len(top):]
+                # entries right below persist/ carry their own labels
+                if name == "persist" and d == top:
+                    print(f"skip (top-level persist entry): {show}", flush=True)
+                    continue
+                if plabel is None:
+                    print(f"skip (parent unlabeled): {show}", flush=True)
+                    continue
+                try:
+                    os.setxattr(p, XATTR, plabel + b"\0", follow_symlinks=False)
+                    fixed += 1
+                    print(f"labeled {show} -> {plabel.decode()}", flush=True)
+                except OSError as e:
+                    print(f"FAILED {show}: {e}", flush=True)
+    if fixed:
+        os.sync()
+    return fixed
+
+
+def on_term(*_):
+    global stop
+    stop = True
+
+
+def final_pass():
+    """After the Android container is gone: mount the partitions ourselves."""
+    tops, mounted = {}, []
+    tmp = "/run/klee-label-guard"
+    for name, part in ROOTS.items():
+        dev = f"/dev/disk/by-partlabel/{part}"
+        mnt = f"{tmp}/{name}"
+        if not os.path.exists(dev):
+            continue
+        os.makedirs(mnt, exist_ok=True)
+        r = subprocess.run(["mount", "-t", "ext4", "-o", "nosuid,nodev,noexec", dev, mnt])
+        if r.returncode == 0:
+            tops[name] = mnt
+            mounted.append(mnt)
+        else:
+            print(f"final pass: cannot mount {dev}", flush=True)
+    try:
+        n = sweep(None, tops)
+        print(f"final pass: {n} entries labeled", flush=True)
+    finally:
+        os.sync()
+        for mnt in mounted:
+            subprocess.run(["umount", mnt])
+
+
+def main():
+    signal.signal(signal.SIGTERM, on_term)
+    signal.signal(signal.SIGINT, on_term)
+    if "--final" in sys.argv:
+        base = android_root()
+        if base:
+            sweep(base)  # container still up: use its mounts
+        else:
+            final_pass()
+        return
+    while not stop:
+        base = android_root()
+        if base:
+            sweep(base)
+        for _ in range(INTERVAL):
+            if stop:
+                break
+            time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,29 @@
+deviceinfo_name="Poco X8 Pro"
+deviceinfo_manufacturer="Xiaomi"
+deviceinfo_codename="klee"
+deviceinfo_arch="aarch64"
+deviceinfo_kernel_source="https://gitlab.com/ubports/porting/community-ports/android12/generic/kernel-android-common.git"
+deviceinfo_kernel_source_branch="android15-6.6-halium"
+deviceinfo_kernel_defconfig="gki_defconfig halium.config klee.config"
+# Dual boot: rootfs lives in /ubuntu.img on the "ut_data" logical partition in
+# super (userdata is metadata-encrypted and is never touched). The ramdisk
+# hardcodes /dev/mapper/ut_data: the Xiaomi LK mangles boot.img cmdline args.
+# printk.devkmsg=on: keep initramfs/systemd kmsg lines in pstore for debugging.
+deviceinfo_kernel_cmdline="printk.devkmsg=on"
+deviceinfo_kernel_clang_compile="true"
+deviceinfo_kernel_llvm_compile="true"
+deviceinfo_prebuilt_boot_ramdisk_source="https://github.com/halium/initramfs-tools-halium/releases/download/dynparts/initrd.img-touch-arm64"
+deviceinfo_ramdisk_compression="lz4"
+deviceinfo_flash_pagesize="4096"
+deviceinfo_bootimg_qcdt="false"
+deviceinfo_bootimg_header_version="4"
+# klee: boot 64 MiB, init_boot 8 MiB
+deviceinfo_bootimg_partition_size="67108864"
+deviceinfo_init_boot_partition_size="8388608"
+# Match the stock/Axion boot image so keymint rollback checks stay happy
+deviceinfo_bootimg_os_version="16"
+deviceinfo_bootimg_os_patch_level="2026-07"
+deviceinfo_bootimg_has_init_boot_partition="true"
+deviceinfo_rootfs_image_sector_size="4096"
+deviceinfo_halium_version="14"
+deviceinfo_ubuntu_touch_release="24.04-1.x"

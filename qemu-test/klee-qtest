@@ -1,0 +1,30 @@
+#!/bin/bash
+# QEMU integration test only: dump diagnostics to the serial console.
+sleep 240
+exec > /dev/ttyAMA0 2>&1
+echo "=====KLEE-QTEST-BEGIN====="
+systemctl --failed --no-pager
+echo "--- mount-android-partitions"
+journalctl -b -u mount-android-partitions -u mount-halium-overlay -u lxc-android-config --no-pager | tail -80
+echo "--- mounts"
+mount | grep -E 'android|vendor|odm|dlkm|metadata|klee'
+echo "--- sanitized"
+find /run/klee-sanitized-rc -type f
+grep -h 'version=' /android/vendor/etc/vintf/manifest.xml | head -2
+echo "--- binder_ndk"
+ls -la /android/system/lib64/libbinder_ndk.so; mount | grep libbinder_ndk
+echo "--- container"
+lxc-info -n android
+echo "--- logcat (filtered)"
+timeout 60 lxc-attach -n android -- /system/bin/logcat -d -b all 2>&1 | grep -iE 'CANNOT LINK|linker|vintf|servicemanager|health|composer|allocator|Could not find|not declared|setTransactionCode|init: (Service|Command|Unable|Could)' | head -250
+echo "--- ps (container)"
+timeout 30 lxc-attach -n android -- /system/bin/ps -A 2>&1 | grep -v ' \[' | head -80
+echo "--- service list"
+timeout 30 lxc-attach -n android -- /system/bin/service list 2>&1 | head -80
+echo "--- vndservice list"
+timeout 30 lxc-attach -n android -- /system/bin/cmd -w 2>/dev/null | head -1
+timeout 30 lxc-attach -n android -- /system/bin/service -h 2>&1 | head -2
+echo "--- servicemanager/vintf kmsg"
+dmesg | grep -iE 'servicemanager|vintf' | sort -u -k3 | tail -15
+echo "=====KLEE-QTEST-END====="
+sync; sleep 2; systemctl poweroff -f

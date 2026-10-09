@@ -1,0 +1,48 @@
+#!/bin/bash
+# klee porting aid: periodically dump Android/Ubuntu state to the ut_data
+# partition so it can be read from Android (Axion) after a failed boot.
+# Every round is kept (logcat/dmesg ring buffers lose the early boot).
+D=/userdata/klee-debug
+rm -rf "$D.old"; [ -d "$D" ] && mv "$D" "$D.old"
+mkdir -p "$D"
+for i in $(seq -w 1 24); do
+	case $i in 01) sleep 5;; 02|03|04) sleep 10;; *) sleep 20;; esac
+	R="$D/$i"; mkdir -p "$R"
+	{
+		echo "=== $(date) uptime: $(cut -d' ' -f1 /proc/uptime)"
+		systemctl --failed --no-pager
+	} > "$R/status.txt" 2>&1
+	dmesg > "$R/dmesg.txt" 2>&1
+	timeout 30 lxc-attach -n android -- /system/bin/logcat -d -b all > "$R/logcat.txt" 2>&1
+	timeout 15 lxc-attach -n android -- /system/bin/service list > "$R/services.txt" 2>&1
+	timeout 15 lxc-attach -n android -- /system/bin/ps -A -o PID,PPID,USER,WCHAN,STAT,NAME > "$R/ps-android.txt" 2>&1
+	ps auxf > "$R/ps-host.txt" 2>&1
+	{
+		ls /sys/class/udc; cat /sys/kernel/config/usb_gadget/g1/UDC
+		ls -R /sys/kernel/config/usb_gadget/ 2>&1 | head -60
+	} > "$R/usb.txt" 2>&1
+	ip addr > "$R/ip.txt" 2>&1
+	journalctl -b --no-pager -u usb-moded -u lightdm -u klee-wifi > "$R/journal-units.txt" 2>&1
+	# what is the hardware composer doing?
+	for p in $(pgrep -f 'graphics.composer'); do
+		{
+			echo "== pid $p: $(tr '\0' ' ' < /proc/$p/cmdline)"
+			cat /proc/$p/wchan; echo
+			cat /proc/$p/stack 2>/dev/null
+			for t in /proc/$p/task/*; do echo "-- $(cat $t/comm) $(cat $t/wchan)"; done
+			ls -l /proc/$p/fd 2>/dev/null
+		} >> "$R/composer.txt" 2>&1
+	done
+	ls -la /dev/dri /dev/graphics /dev/mali* /dev/ion /dev/dma_heap > "$R/devnodes.txt" 2>&1
+	# who has the DRM device open (and who is DRM master)?
+	for f in /proc/[0-9]*/fd/*; do
+		case "$(readlink "$f" 2>/dev/null)" in /dev/dri/*)
+			p=${f#/proc/}; p=${p%%/*}
+			echo "$p $(readlink "$f") $(tr '\0' ' ' < /proc/$p/cmdline | cut -c1-120)";;
+		esac
+	done > "$R/drm-users.txt" 2>&1
+	mountpoint -q /sys/kernel/debug || mount -t debugfs none /sys/kernel/debug 2>/dev/null
+	cat /sys/kernel/debug/dri/*/clients >> "$R/drm-users.txt" 2>&1
+	timeout 10 getprop ro.product.model > "$R/getprop-test.txt" 2>&1; echo "exit=$?" >> "$R/getprop-test.txt"
+	sync
+done

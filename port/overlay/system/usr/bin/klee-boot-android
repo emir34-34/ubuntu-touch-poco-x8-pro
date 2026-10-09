@@ -1,0 +1,5 @@
+#!/bin/sh
+# Poco X8 Pro (klee) dual boot: switch back to Android (Axion) through
+# OrangeFox (the boot partitions are write protected while UT runs).
+# Usage: sudo klee-boot-android   (or the "Android'e Geç" app)
+exec /usr/libexec/klee/klee-request-switch android

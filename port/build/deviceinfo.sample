@@ -1,0 +1,246 @@
+##########
+# This is a sample file for showcasing deviceinfo config options.
+# Place your own config file at `./deviceinfo`.
+#
+# Not all options are required to be set.
+# If you want to see deviceinfo files of already supported devices:
+#  - https://gitlab.com/search?group_id=4169239&repository_ref=focal&scope=blobs&search=filename%3Adeviceinfo
+#
+
+##########
+# Basic device information
+
+# Commercial name of device (usually `ro.product.model` for Android devices)
+deviceinfo_name="Smartphone 12Pro 5G"
+
+# Name of manufacturer (usually `ro.product.manufacturer` for Android devices)
+deviceinfo_manufacturer="UBports"
+
+# The codename of the device (usually `ro.product.name` for Android devices)
+deviceinfo_codename="yumi"
+
+# Architecture of the device:
+#  - arm
+#  - aarch64
+#  - x86
+#  - x86_64
+deviceinfo_arch="aarch64"
+
+# The architecture of the kernel
+# Devices might run aarch64 kernels with arm userspace
+# Defaults to deviceinfo_arch if not provided
+#  - arm
+#  - arm64 (aarch64 is also accepted)
+#  - x86
+#  - x86_64
+deviceinfo_kernel_arch="arm64"
+
+# The halium version the device is based on:
+#  -  9
+#  - 10
+#  - 11
+#  - 12
+deviceinfo_halium_version="10"
+
+# The Ubuntu Touch release, which should be used (eg as rootfs):
+#  - focal - 20.04 (no active development)
+#  - 24.04-1.x
+#  - 24.04-2.x (default when unspecified)
+#  - 26.04-1.x
+deviceinfo_ubuntu_touch_release="24.04-2.x"
+
+#
+##########
+
+##########
+# Kernel
+
+# URL of source repo
+deviceinfo_kernel_source="https://gitlab.com/ubports/porting/community-ports/example_kernel_source.git"
+
+# Branch of repo
+deviceinfo_kernel_source_branch="main"
+
+# Defconfig to use, located within the kernel repo (usually a file within arch/*/configs/)
+deviceinfo_kernel_defconfig="halium_yumi_defconfig"
+
+# Kernel cmdline options, these are very device specific
+# Android based ports can usually take them from the Android device tree's `BoardConfig.mk`
+deviceinfo_kernel_cmdline="console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0xA84000 androidboot.console=ttyMSM0 printk.devkmsg=on androidboot.hardware=qcom video=vfb:640x400,bpp=32,memsize=3072000 androidboot.configfs=true loop.max_part=7 msm_rtb.filter=0x237 ehci-hcd.park=3 service_locator.enable=1 androidboot.memcg=1 cgroup.memory=nokmem androidboot.usbcontroller=a600000.dwc3 swiotlb=2048 androidboot.boot_devices=soc/1d84000.ufshc systempart=/dev/mapper/system"
+
+# Kernel cmdline options for GKI (header v3+) vendor_boot.img, these are device-specific
+deviceinfo_kernel_vendor_cmdline="bootopt=64S3,32N2,64N2 systempart=/dev/mapper/system"
+
+# URL of a custom GCC toolchain archive
+# This should only be needed in rare cases when Google's GCC 4.9 doesn't work
+deviceinfo_kernel_gcc_toolchain_source="https://releases.linaro.org/components/toolchain/binaries/6.3-2017.02/aarch64-linux-gnu/gcc-linaro-6.3.1-2017.02-x86_64_aarch64-linux-gnu.tar.xz"
+
+# Local directory name of the extracted custom GCC toolchain
+deviceinfo_kernel_gcc_toolchain_dir="gcc-linaro-6.3.1-2017.02-x86_64_aarch64-linux-gnu"
+
+# Whether the kernel is compiled using Clang or not
+deviceinfo_kernel_clang_compile="true"
+
+# Use a specific branch of prebuilt clang binaries instead of default for current Halium version
+# https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86#android-clang_llvm-prebuilts
+deviceinfo_kernel_clang_branch="android12L-gsi"
+
+# Use a specific revision of prebuilt clang revision (version) instead of default for current Halium version
+deviceinfo_kernel_clang_revision="r416183b"
+
+# Whether LLVM should be used as primary toolchain or not
+# Note: requires `deviceinfo_kernel_clang_compile` to be enabled
+deviceinfo_kernel_llvm_compile="false"
+
+# Whether lld should be used as linker or not
+# Note: requires `deviceinfo_kernel_clang_compile` to be enabled
+deviceinfo_kernel_use_lld="false"
+
+# Force use of specified kernel image, do not set to autodetect
+deviceinfo_kernel_image_name="Image.lz4"
+
+# Disable running "make install_modules" in case your kernel has support for them disabled for example
+deviceinfo_kernel_disable_modules="true"
+
+#
+##########
+
+
+##########
+# Boot image
+# These configs are used for generating boot.img and recovery.img
+
+# The values can be extracted from a stock boot.img by unpack_bootimg.py tool
+# Android based ports can also take them from the Android device tree if available
+
+# Header version of the boot image
+deviceinfo_bootimg_header_version="2"
+
+# Pagesize and bootloader offsets written in the boot image header
+deviceinfo_flash_pagesize="4096"
+deviceinfo_flash_offset_base="0x00000000"
+deviceinfo_flash_offset_kernel="0x00008000"
+deviceinfo_flash_offset_ramdisk="0x01000000"
+deviceinfo_flash_offset_second="0x00000000"
+deviceinfo_flash_offset_tags="0x00000100"
+deviceinfo_flash_offset_dtb="0x01f00000"
+
+# Android OS version, currently supported:
+#  -  9
+#  - 10
+#  - 11
+deviceinfo_bootimg_os_version="11"
+
+# Android security patch level (taken from stock boot image)
+deviceinfo_bootimg_os_patch_level="2022-12-05"
+
+# Size of the boot partition
+deviceinfo_bootimg_partition_size="100663296"
+
+# Tailtype of boot image, highly device specific:
+#  - SEAndroid - Append `SEANDROIDENFORCE` to boot image
+# Only use if you are sure you need it!
+deviceinfo_bootimg_tailtype="SEAndroid"
+
+# Whether vbmeta should be appended to the boot image or not
+deviceinfo_bootimg_append_vbmeta="false"
+
+# Whether initramfs should be split away to a separate init_boot.img from boot.img
+# Enable for devices launched with Android 13+
+deviceinfo_bootimg_has_init_boot_partition="false"
+
+# Size of the init_boot partition (defaults to 8 MiB when unset)
+deviceinfo_init_boot_partition_size="8388608"
+
+# Size of the vendor_boot partition (rarely needed for AVB hash footer, e.g. 100 MiB)
+deviceinfo_vendor_boot_partition_size="$((100*$((2**20))))"
+
+# Whether kernel related bits are split away to a separate vendor_kernel_boot.img from vendor_boot.img
+# Enable for devices launched with Android 13+ with a vendor_kernel_boot partition (mostly QCOM so far)
+deviceinfo_bootimg_has_vendor_kernel_boot_partition="false"
+
+## DTB(O)
+
+# Whether to use dtc extension or not
+deviceinfo_kernel_use_dtc_ext="false"
+
+# Whether ufdt overlays should be applied or not
+deviceinfo_kernel_apply_overlay="false"
+
+# Prebuilt DTB to append to the generated images
+deviceinfo_bootimg_prebuilt_dtb="ubports_yumi.dtb"
+
+# Same as above, but selected from kernel build directory
+# Mainly needed for bootimg v0 Samsung devices
+deviceinfo_bootimg_dt="ubports_yumi.dtb"
+
+# Use prebuilt dtbo image instead of generating from kernel sources
+# Note: overrides `deviceinfo_dtbo`
+deviceinfo_prebuilt_dtbo="dtbo.img"
+
+# Whether a dtbo image should be generated or not
+deviceinfo_dtbo="false"
+
+# Define optional dtbo(s) id(s)
+deviceinfo_dtbo_ids="0x0 0x1"
+
+# Whether to not copy an image for dedicated dtbo partition
+# This does not affect recovery partition image build
+deviceinfo_skip_dtbo_partition="true"
+
+## Ramdisk
+
+# Use prebuilt ramdisk for the boot image
+deviceinfo_prebuilt_boot_ramdisk="halium-boot-ramdisk.img"
+
+# Download prebuilt ramdisk for the boot image
+deviceinfo_prebuilt_boot_ramdisk_source="https://github.com/halium/initramfs-tools-halium/releases/download/continuous/initrd.img-touch-ARCH"
+
+# Device ramdisk compression.
+# Currently supported values are "gzip" and "lz4"
+deviceinfo_ramdisk_compression="gzip"
+
+## Recovery
+
+# Whether to use unified UBports recovery-ramdisk.img artifact from CI
+deviceinfo_use_unified_recovery="true"
+
+# Size of UBports recovery UI elements, mdpi comes with recovery-ramdisk.img as default. Android-recommended values:
+# - ~160 PPI -> mdpi
+# - ~240 PPI -> hdpi
+# - ~320 PPI -> xhdpi
+# - ~480 PPI -> xxhdpi
+# - ~640 PPI -> xxxhdpi
+deviceinfo_unified_recovery_ui_density="mdpi"
+
+# Download prebuilt recovery ramdisk for the (vendor_)boot image
+deviceinfo_prebuilt_recovery_ramdisk_source="https://ci.ubports.com/job/UBportsCommunityPortsJenkinsCI/job/ubports%2Fporting%2Fcommunity-ports%2Fjenkins-ci%2Fgeneric_arm64/job/halium-14.0/lastSuccessfulBuild/artifact/ramdisk-recovery.img"
+
+# Whether a recovery.img should be generated or not
+#
+# Note: Setting this also requires a separate recovery ramdisk to exist at:
+#  - ./ramdisk-recovery.img
+#  - ./ramdisk-overlay/ramdisk-recovery.img
+# Or alternatively also adding deviceinfo_use_unified_recovery="true"
+#
+# It is possible to overlay (replace) files of the ramdisk with files placed into:
+#  - ./ramdisk-recovery-overlay/
+deviceinfo_has_recovery_partition="true"
+
+# Size of the recovery partition
+deviceinfo_recovery_partition_size="100663296"
+
+#
+##########
+
+# Image sector size of the rootfs
+# This depends on the hardware used; the default of 4096 should be fine for most modern devices
+deviceinfo_rootfs_image_sector_size="4096"
+
+# Size of the device's (dynamic) system partition
+# This will be the maximum size for rootfs.img
+deviceinfo_system_partition_size="3584M"
+
+# Whether to enable overlaystore or not
+# For more information, see: https://docs.ubports.com/en/latest/porting/configure_test_fix/Overlay.html#ubuntu-touch-20-04-and-later
+deviceinfo_use_overlaystore="true"

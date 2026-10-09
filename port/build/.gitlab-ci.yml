@@ -1,0 +1,12 @@
+check-scripts:
+  image: koalaman/shellcheck-alpine:latest
+  stage: test
+  before_script:
+    - apk update
+    #- apk add git
+  script:
+    #- git ls-files --exclude='*.sh' --ignored -c -z | xargs -0r shellcheck
+    # Enable the above once all scripts pass shellcheck.
+    # Until then, shellcheck each script individually.
+    - shellcheck common_functions.sh
+    - shellcheck setup_repositories.sh

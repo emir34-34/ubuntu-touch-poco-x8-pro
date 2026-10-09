@@ -1,0 +1,18 @@
+#!/bin/sh
+# klee (MediaTek gen4m Wi-Fi): the wlan0 interface only appears after "1" is
+# written to /dev/wmtWifi. On Android the vendor Wi-Fi HAL does that; Ubuntu
+# Touch uses NetworkManager + wpa_supplicant directly, so do it here.
+i=0
+while [ ! -e /dev/wmtWifi ] && [ $i -lt 90 ]; do sleep 1; i=$((i + 1)); done
+[ -e /dev/wmtWifi ] || { echo "klee-wifi: /dev/wmtWifi never appeared"; exit 0; }
+for try in 1 2 3; do
+	echo 1 > /dev/wmtWifi 2>/dev/null
+	j=0
+	while [ ! -e /sys/class/net/wlan0 ] && [ $j -lt 15 ]; do sleep 1; j=$((j + 1)); done
+	if [ -e /sys/class/net/wlan0 ]; then
+		echo "klee-wifi: wlan0 is up (try $try)"
+		exit 0
+	fi
+done
+echo "klee-wifi: wlan0 did not appear"
+exit 0

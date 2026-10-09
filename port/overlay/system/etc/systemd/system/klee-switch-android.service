@@ -1,0 +1,7 @@
+[Unit]
+Description=klee dual boot: switch to Android through OrangeFox
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/klee/klee-request-switch android
+StandardOutput=journal

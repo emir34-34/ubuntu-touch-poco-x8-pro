@@ -1,0 +1,12 @@
+[Unit]
+Description=klee porting aid: USB network + SSH (10.15.19.82:8022)
+After=sys-kernel-config.mount systemd-udevd.service
+Before=lightdm.service
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/klee/usbnet
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

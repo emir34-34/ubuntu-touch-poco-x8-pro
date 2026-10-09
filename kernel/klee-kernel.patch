@@ -1,0 +1,63 @@
+diff --git a/kernel/module/gki_quirks.c b/kernel/module/gki_quirks.c
+index e50648428..d8e288c13 100755
+--- a/kernel/module/gki_quirks.c
++++ b/kernel/module/gki_quirks.c
+@@ -28,6 +28,7 @@ static const struct gki_quirks_hook gki_quirks_list[] = {
+ 	// Ditto for MTK SoC devices, needed for Waydroid
+ 	{ "mali_kbase_mt6789", "find_get_pid", find_get_pid_global_ns },
+         { "mali_kbase_mt6878", "find_get_pid", find_get_pid_global_ns },
++	{ "mali_kbase_mt6899_r49", "find_get_pid", find_get_pid_global_ns }, /* Poco X8 Pro (klee) */
+ 
+ 	{ } /* terminating entry must be last */
+ };
+diff --git a/security/security.c b/security/security.c
+index 1794860fd..91e9e56e5 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -11,6 +11,7 @@
+ 
+ #define pr_fmt(fmt) "LSM: " fmt
+ 
++#include <linux/bootconfig.h>
+ #include <linux/bpf.h>
+ #include <linux/capability.h>
+ #include <linux/dcache.h>
+@@ -350,6 +351,26 @@ static void __init report_lsm_order(void)
+ 	pr_cont("\n");
+ }
+ 
++/*
++ * klee dual boot: Ubuntu Touch needs AppArmor, but in recovery mode the
++ * bootloader starts this same kernel (from the boot partition) with the
++ * OrangeFox ramdisk, and Android's init cannot run without SELinux. Only one
++ * of the two can be active, so use SELinux unless the bootloader asked for
++ * a normal boot.
++ */
++static __initconst const char klee_recovery_lsm_order[] =
++	"landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,bpf";
++
++static bool __init klee_recovery_boot(void)
++{
++	const char *v;
++
++	if (strstr(boot_command_line, "androidboot.force_normal_boot=1"))
++		return false;
++	v = xbc_find_value("androidboot.force_normal_boot", NULL);
++	return !(v && !strcmp(v, "1"));
++}
++
+ static void __init ordered_lsm_init(void)
+ {
+ 	struct lsm_info **lsm;
+@@ -357,6 +378,11 @@ static void __init ordered_lsm_init(void)
+ 	ordered_lsms = kcalloc(LSM_COUNT + 1, sizeof(*ordered_lsms),
+ 			       GFP_KERNEL);
+ 
++	if (!chosen_lsm_order && klee_recovery_boot()) {
++		pr_info("klee: recovery boot, using SELinux instead of AppArmor\n");
++		chosen_lsm_order = klee_recovery_lsm_order;
++	}
++
+ 	if (chosen_lsm_order) {
+ 		if (chosen_major_lsm) {
+ 			pr_warn("security=%s is ignored because it is superseded by lsm=%s\n",

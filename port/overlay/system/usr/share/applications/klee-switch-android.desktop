@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Android'e Geç
+Comment=Axion'a geri dön (OrangeFox üzerinden)
+Exec=qmlscene /usr/share/klee-switch/main.qml android
+Icon=/usr/share/klee-switch/klee-android.svg
+Terminal=false
+X-Lomiri-Touch=true
+X-Lomiri-Single-Instance=true

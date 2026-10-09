@@ -1,0 +1,16 @@
+[Unit]
+Description=klee: keep SELinux labels on Android vendor data (modem/IMEI safety)
+# Before= the container: at shutdown this unit stops *after* Android, so the
+# final pass (ExecStopPost) sees everything the modem wrote.
+Before=lxc@android.service
+Before=shutdown.target
+
+[Service]
+ExecStart=/usr/libexec/klee/selinux-label-guard
+ExecStopPost=/usr/libexec/klee/selinux-label-guard --final
+TimeoutStopSec=60
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

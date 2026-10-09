@@ -1,0 +1,8 @@
+#!/bin/bash
+sleep 120
+exec > /dev/ttyAMA0 2>&1
+echo "=====SAFETY-B: UT is up, running klee-boot-android====="
+ls -la /dev/disk/by-partlabel/
+mount | grep -E 'userdata|ut_data' 
+/usr/bin/klee-boot-android
+echo "klee-boot-android exit=$?"

@@ -1,0 +1,108 @@
+#!/bin/sh
+# lp-map: map Android logical (dynamic) partitions of a super block device
+# with device-mapper, using the metadata slot of the *active* A/B slot.
+#
+# The stock halium parse-android-dynparts always reads metadata slot 0, which
+# on Virtual A/B devices running from slot _b (like klee) describes stale
+# extents. This is a dependency-free (busybox sh + od + dd) reimplementation of
+# fs_mgr's CreateLogicalPartitions for linear/zero extents.
+#
+# usage: lp-map <super blockdev> [slot_suffix]   (prints what it maps)
+#        lp-map -n <super blockdev> [slot_suffix] (dry run: print tables only)
+
+DRY=""
+if [ "$1" = "-n" ]; then DRY=1; shift; fi
+SUPER="$1"
+SUFFIX="$2"
+
+[ -n "$SUPER" ] || { echo "usage: $0 [-n] <super> [slot_suffix]" >&2; exit 1; }
+
+if [ -z "$SUFFIX" ]; then
+	[ -e /proc/bootconfig ] && SUFFIX=$(grep -o 'androidboot\.slot_suffix = ".."' /proc/bootconfig | cut -d '"' -f2)
+	[ -z "$SUFFIX" ] && SUFFIX=$(grep -o 'androidboot\.slot_suffix=..' /proc/cmdline | tail -1 | cut -d '=' -f2)
+fi
+case "$SUFFIX" in
+	_b) SLOT=1 ;;
+	*) SLOT=0 ;;
+esac
+
+# u32 / u64 little-endian readers (busybox od)
+u32() { od -A n -t u4 -j "$1" -N 4 "$SUPER" | tr -d ' \n'; }
+u64() {
+	lo=$(u32 "$1")
+	hi=$(u32 $(($1 + 4)))
+	echo $((hi * 4294967296 + lo))
+}
+cstr() { dd if="$SUPER" bs=1 skip="$1" count="$2" 2>/dev/null | tr -d '\000'; }
+
+GEO=4096
+magic=$(u32 $GEO)
+if [ "$magic" != "1634485351" ]; then # 0x616c4467 "gDla"
+	echo "lp-map: no LP geometry on $SUPER" >&2
+	exit 1
+fi
+max_size=$(u32 $((GEO + 40)))
+slot_count=$(u32 $((GEO + 44)))
+[ "$SLOT" -lt "$slot_count" ] || SLOT=0
+
+MD=$((GEO + 4096 * 2 + SLOT * max_size))
+if [ "$(u32 $MD)" != "1095520304" ]; then # 0x414C5030 "0PLA"
+	echo "lp-map: bad metadata header for slot $SLOT" >&2
+	exit 1
+fi
+header_size=$(u32 $((MD + 8)))
+TABLES=$((MD + header_size))
+p_off=$(u32 $((MD + 80)));  p_num=$(u32 $((MD + 84)));  p_sz=$(u32 $((MD + 88)))
+e_off=$(u32 $((MD + 92)));  e_sz=$(u32 $((MD + 100)))
+b_off=$(u32 $((MD + 116))); b_num=$(u32 $((MD + 120)))
+
+if [ "$b_num" != "1" ]; then
+	echo "lp-map: multiple block devices not supported ($b_num)" >&2
+fi
+
+echo "lp-map: $SUPER slot=$SLOT ($SUFFIX) partitions=$p_num" >&2
+
+i=0
+while [ $i -lt "$p_num" ]; do
+	P=$((TABLES + p_off + i * p_sz))
+	name=$(cstr $P 36)
+	attrs=$(u32 $((P + 36)))
+	first=$(u32 $((P + 40)))
+	nume=$(u32 $((P + 44)))
+	i=$((i + 1))
+	[ -n "$name" ] || continue
+	[ "$nume" -gt 0 ] || continue
+	# LP_PARTITION_ATTR_DISABLED = 1<<2
+	[ $((attrs & 4)) -eq 0 ] || continue
+	[ -e "/dev/mapper/$name" ] && continue
+
+	table=""
+	sector=0
+	j=0
+	while [ $j -lt "$nume" ]; do
+		E=$((TABLES + e_off + (first + j) * e_sz))
+		nsec=$(u64 $E)
+		ttype=$(u32 $((E + 8)))
+		tdata=$(u64 $((E + 12)))
+		if [ "$ttype" = "0" ]; then
+			line="$sector $nsec linear $SUPER $tdata"
+		else
+			line="$sector $nsec zero"
+		fi
+		table="$table$line
+"
+		sector=$((sector + nsec))
+		j=$((j + 1))
+	done
+
+	ro=""
+	[ $((attrs & 1)) -eq 0 ] || ro="--readonly"
+	if [ -n "$DRY" ]; then
+		printf '# %s (%s sectors)%s\n%s' "$name" "$sector" "${ro:+ ro}" "$table"
+	else
+		printf '%s' "$table" | dmsetup create $ro "$name" && echo "lp-map: mapped $name" >&2
+	fi
+done
+
+[ -n "$DRY" ] || dmsetup mknodes 2>/dev/null
+exit 0

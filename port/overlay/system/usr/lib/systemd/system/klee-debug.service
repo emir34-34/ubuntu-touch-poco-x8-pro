@@ -1,0 +1,10 @@
+[Unit]
+Description=klee porting aid: dump debug state to /userdata/klee-debug
+After=lxc-android-config.service
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/klee/debug-dump
+
+[Install]
+WantedBy=multi-user.target

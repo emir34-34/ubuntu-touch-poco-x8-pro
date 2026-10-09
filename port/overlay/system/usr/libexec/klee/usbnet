@@ -1,0 +1,31 @@
+#!/bin/bash
+# klee porting aid: USB network (CDC-NCM) + SSH, independent of usb-moded.
+#   phone: 10.15.19.82/24 on usb0   PC: give the new interface 10.15.19.1/24
+#   ssh -p 8022 -i <key> root@10.15.19.82   (key-only, USB interface only)
+G=/sys/kernel/config/usb_gadget/g1
+UDC=$(ls /sys/class/udc | head -1)
+mountpoint -q /sys/kernel/config || mount -t configfs none /sys/kernel/config
+mkdir -p $G/strings/0x409 $G/configs/c.1/strings/0x409 $G/functions/ncm.usb0
+echo 0x18d1 > $G/idVendor
+echo 0xd002 > $G/idProduct
+echo "Xiaomi" > $G/strings/0x409/manufacturer
+echo "POCO X8 Pro (Ubuntu Touch debug)" > $G/strings/0x409/product
+echo "klee-ut" > $G/strings/0x409/serialnumber
+echo "NCM" > $G/configs/c.1/strings/0x409/configuration
+ln -sf $G/functions/ncm.usb0 $G/configs/c.1/ 2>/dev/null
+echo "$UDC" > $G/UDC
+for i in $(seq 1 20); do
+	IF=$(cat $G/functions/ncm.usb0/ifname 2>/dev/null)
+	[ -n "$IF" ] && [ -e /sys/class/net/$IF ] && break
+	sleep 1
+done
+ip addr add 10.15.19.82/24 dev "$IF" 2>/dev/null
+ip link set "$IF" up
+mkdir -p /run/sshd /run/klee-ssh
+[ -f /run/klee-ssh/host_ed25519 ] || ssh-keygen -q -t ed25519 -N '' -f /run/klee-ssh/host_ed25519
+exec /usr/sbin/sshd -D -p 8022 \
+	-o HostKey=/run/klee-ssh/host_ed25519 \
+	-o ListenAddress=10.15.19.82 \
+	-o PermitRootLogin=prohibit-password \
+	-o PasswordAuthentication=no \
+	-o AuthorizedKeysFile=/etc/klee/authorized_keys

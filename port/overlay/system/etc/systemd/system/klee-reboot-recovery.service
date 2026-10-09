@@ -1,0 +1,6 @@
+[Unit]
+Description=klee: reboot to OrangeFox recovery
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl reboot recovery

@@ -1,0 +1,15 @@
+[Unit]
+Description=klee: mirror lcd-backlight into the Xiaomi panel brightness
+# start as early as possible so the boot spinner is visible
+DefaultDependencies=no
+After=systemd-modules-load.service sys-kernel-debug.mount
+Before=sysinit.target lightdm.service
+Conflicts=shutdown.target
+
+[Service]
+ExecStart=/usr/libexec/klee/brightness-sync
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=sysinit.target

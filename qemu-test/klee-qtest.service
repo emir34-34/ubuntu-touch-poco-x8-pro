@@ -1,0 +1,7 @@
+[Unit]
+Description=klee QEMU test
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/klee-qtest
+[Install]
+WantedBy=multi-user.target

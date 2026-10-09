@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Recovery'ye Geç
+Comment=OrangeFox recovery ile yeniden başlat
+Exec=qmlscene /usr/share/klee-switch/main.qml recovery
+Icon=/usr/share/klee-switch/klee-recovery.svg
+Terminal=false
+X-Lomiri-Touch=true
+X-Lomiri-Single-Instance=true

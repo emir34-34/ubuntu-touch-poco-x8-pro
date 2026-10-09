@@ -1,0 +1,46 @@
+#!/bin/sh
+# klee: the Xiaomi panel only takes its brightness from the mi_display
+# "backlight" node (sends DCS 0x51; set by Xiaomi's display HAL on Android). Ubuntu's
+# repowerd only writes the MTK lcd-backlight LED, which leaves the panel at
+# brightness 0 (black screen). Mirror lcd-backlight into it.
+LED=/sys/class/leds/lcd-backlight
+MI=/sys/class/mi_display/disp-DSI-0
+CRTC=/sys/kernel/debug/dri/0/state
+
+mountpoint -q /sys/kernel/debug || mount -t debugfs none /sys/kernel/debug
+led_max=$(cat $LED/max_brightness)
+mi_max=$(cat $MI/factory_max_brightness 2>/dev/null)
+[ -n "$mi_max" ] && [ "$mi_max" -gt 0 ] || mi_max=8191
+
+# 40 % until repowerd takes over
+boot_level=$((mi_max * 2 / 5))
+
+last=""
+burst=0
+while :; do
+	led=$(cat $LED/brightness)
+	want=$((led * mi_max / led_max))
+	[ "$led" -gt 0 ] && [ "$want" -lt 1 ] && want=1
+	# during boot nobody has set a brightness yet (LED at 0) while the panel
+	# is already on: use a boot brightness so the boot spinner is visible.
+	# Once repowerd sets the LED, its value takes over for good.
+	[ "$led" -gt 0 ] && seen_led=1
+	[ "$led" -eq 0 ] && [ -z "${seen_led:-}" ] && want=$boot_level
+	# the panel forgets the value on every power-on, and the CRTC turns
+	# active before the panel init sequence has finished, so a single write
+	# can get lost. The driver also drops writes of the value it already
+	# holds: after a change, alternate want-1/want for ~3 s, ending on want.
+	active=$(grep -m1 "active=" $CRTC 2>/dev/null)
+	state="$want $active"
+	if [ "$state" != "$last" ]; then
+		last="$state"
+		burst=10
+	fi
+	if [ "$burst" -gt 0 ]; then
+		v=$want
+		[ $((burst % 2)) -eq 0 ] && [ "$want" -gt 1 ] && v=$((want - 1))
+		echo "$v" > $MI/backlight
+		burst=$((burst - 1))
+	fi
+	sleep 0.3
+done

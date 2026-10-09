@@ -1,0 +1,13 @@
+# klee: the Android 16 vendor vndservicemanager aborts when binder transactions
+# carry no SELinux context ("Did not get context from PID ..."), which is always
+# the case under Halium (SELinux off). The GSI's servicemanager is the same
+# program and tolerates that, so serve /dev/vndbinder with it instead.
+service vndservicemanager /system/bin/servicemanager /dev/vndbinder
+    class core
+    user system
+    group system readproc
+    writepid /dev/cpuset/system-background/tasks
+    onrestart class_restart main
+    onrestart class_restart hal
+    onrestart class_restart early_hal
+    shutdown critical

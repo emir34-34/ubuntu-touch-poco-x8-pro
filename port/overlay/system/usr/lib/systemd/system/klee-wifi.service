@@ -1,0 +1,10 @@
+[Unit]
+Description=Power on the MediaTek Wi-Fi chip (Poco X8 Pro / klee)
+After=lxc-android-config.service
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/klee/wifi-on
+
+[Install]
+WantedBy=multi-user.target

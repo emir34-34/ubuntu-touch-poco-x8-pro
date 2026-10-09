@@ -1,0 +1,7 @@
+workdir/
+*.img
+*.img.lz4
+*.keystore
+authorized_keys
+__pycache__/
+/apps/android-reboot-ubuntu/build/

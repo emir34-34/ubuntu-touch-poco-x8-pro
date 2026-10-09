@@ -1,0 +1,6 @@
+id=klee_dualboot
+name=Klee Dual Boot - IMEI koruması
+version=1.0
+versionCode=1
+author=klee port
+description=Ubuntu Touch'tan dönünce modem dosyalarının SELinux etiketlerini düzeltir (IMEI kaybını önler). Kayıt: /data/adb/klee-selinux-fix.log

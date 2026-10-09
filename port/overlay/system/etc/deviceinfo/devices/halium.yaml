@@ -1,0 +1,15 @@
+# Poco X8 Pro (klee): 6.59" 1220x2712 (~450 ppi) panel
+klee: &klee
+  Name: klee
+  PrettyName: Poco X8 Pro
+  DeviceType: phone
+  GridUnit: 24
+  WebkitDpr: 3
+  PrimaryOrientation: Portrait
+  SupportedOrientations:
+    - Portrait
+    - Landscape
+    - InvertedLandscape
+
+halium: *klee
+halium_gki: *klee

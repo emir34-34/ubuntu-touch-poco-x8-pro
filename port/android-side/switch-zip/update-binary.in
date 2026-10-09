@@ -1,0 +1,16 @@
+#!/sbin/sh
+# klee dual boot: OrangeFox zip that switches the active slot to @NAME@.
+OUTFD=$2
+ui() { echo "ui_print $*" >&$OUTFD; echo "ui_print" >&$OUTFD; }
+ui "klee dual boot: @NAME@'a geçiliyor"
+S=/data/adb/klee/klee-switch.sh
+if [ ! -f $S ]; then
+	ui "HATA: $S yok. /data çözüldü mü? (PIN)"
+	exit 1
+fi
+R=/tmp/klee-switch.out
+sh $S @TARGET@ > $R 2>&1
+rc=$?
+while IFS= read -r l; do ui "$l"; done < $R
+[ $rc = 0 ] && ui "Bitti: Reboot System'a bas."
+exit $rc
