@@ -14,6 +14,18 @@ This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `
 > **Status: abandoned by the original author (2026-10-08).** The code, scripts and all notes
 > are published here so that others can continue. Forks and pull requests are welcome.
 
+## Disclaimer
+
+**Use this at your own risk.** This is an experimental, unfinished port. Flashing it can
+brick your phone, put it into a boot loop, wipe your data or make the IMEI disappear. The
+standalone install erases all Android data by design. The author takes **no responsibility**
+for any damage to your device or data, and gives **no support** for individual installs. If
+you are not comfortable recovering a phone from fastboot yourself, do not install this.
+Before you start, back up everything, especially the IMEI/NVRAM partitions.
+
+This software is provided "as is", without warranty of any kind (see the GPL-2.0, sections 11
+and 12).
+
 ## What worked on real hardware
 
 | Component | Status |
