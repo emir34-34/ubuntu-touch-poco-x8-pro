@@ -1,6 +1,6 @@
 ![Ubuntu Touch for Poco X8 Pro](docs/banner.png)
 
-# Ubuntu Touch for the Poco X8 Pro (klee, MT6899)
+# Ubuntu Touch for the Poco X8 Pro (klee, MT6899) !!!This page is outdated updating soon!!!
 
 This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `klee`, model
 2511FPC34G, MediaTek mt6899). There are two ways to install it:
