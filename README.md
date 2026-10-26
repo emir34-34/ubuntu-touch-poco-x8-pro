@@ -1,53 +1,55 @@
 ![Ubuntu Touch for Poco X8 Pro](docs/banner.png)
 
-# Ubuntu Touch for the Poco X8 Pro (klee, MT6899) !!!This page is outdated updating soon!!!
+# Ubuntu Touch and ztOS for the Poco X8 Pro (klee, MT6899)
 
-This is an experimental Ubuntu Touch port for the Xiaomi Poco X8 Pro (codename `klee`, model
-2511FPC34G, MediaTek mt6899). There are two ways to install it:
+An experimental port of Ubuntu Touch 24.04, with [ztOS](https://github.com/Zerone-Laboratories/ztOS)
+on top, for the Xiaomi Poco X8 Pro (codename `klee`, model 2511FRT34C, MediaTek MT6899,
+Mali-G720 MC8). The phone runs it every day.
 
-- **Dual boot** (`release/install.sh`, tested on the device): Ubuntu Touch sits next to an
-  Android ROM (AxionAOSP, Android 16). `/data` is never wiped. Ubuntu Touch lives in a new
-  logical partition (`ut_data`) created in the free space of the `super` partition.
-- **Standalone** (`release/install-standalone.sh`, **not tested on the device**): Ubuntu Touch
-  replaces Android. It gets the whole `userdata` partition as ext4, so **all Android data is
-  erased**. It uses the same kernel, ramdisk and rootfs as the dual boot install; only the
-  data partition differs. `release/restore-android.sh` goes back to Android.
+> **Status (2026-10-26): active.** The port was abandoned on 2026-10-08 and picked up again on
+> 2026-10-17. Everything since then is in **[CHANGELOG.md](CHANGELOG.md)**, dated to the minute.
+> The scripts in this repository are still the ones of the first release (2026-10-09, AxionAOSP
+> dual boot). The current install, next to HyperOS, will be published with the move to
+> **Arch Linux ARM**, ztOS's own base, which is coming soon.
 
-> **Status: abandoned by the original author (2026-10-08).** The code, scripts and all notes
-> are published here so that others can continue. Forks and pull requests are welcome.
-> Sister project: [One UI 8.5 DSU port for the Poco X8 Pro](https://github.com/emir34-34/oneui-poco-x8-pro).
+## How it runs now
 
-![Ubuntu Touch running on the Poco X8 Pro: lock screen, launcher, settings and system information](docs/screenshots/overview.jpg)
+- **Dual boot with HyperOS.** HyperOS stays on slot A, untouched. Ubuntu Touch and ztOS boot
+  from slot B.
+- **No repartitioning.** The `super` partition is full, so Ubuntu Touch's data is a pinned
+  (immovable) file in HyperOS's `/data`, the way DSU keeps its images. The initrd maps its
+  extents over the raw userdata partition (`klee-pinmap`), after checking the ext4 UUID and a
+  trailer at its end.
+- **Kernel:** the phone's Android GKI 6.6 with Halium. Ubuntu Touch 24.04 runs the Android
+  vendor services in its LXC container.
+- **ztOS:** ztMETRO and the ztOS apps run from a chroot, on the Mali GPU through libhybris
+  (wlroots 0.20 with a gralloc allocator).
+- **Android apps:** Waydroid with LineageOS 23.2 (Android 16), drawing on the same GPU.
+- **Flatpak apps:** on the GPU too (libhybris in the sandbox).
 
-*Lock screen, launcher, system settings and system information, from a video of the real
-device. Serial number and Wi-Fi MAC are hidden.*
+## What works
 
-## Disclaimer
-
-**Use this at your own risk.** This is an experimental, unfinished port. Flashing it can
-brick your phone, put it into a boot loop, wipe your data or make the IMEI disappear. The
-standalone install erases all Android data by design. The author takes **no responsibility**
-for any damage to your device or data, and gives **no support** for individual installs. If
-you are not comfortable recovering a phone from fastboot yourself, do not install this.
-Before you start, back up everything, especially the IMEI/NVRAM partitions.
-
-This software is provided "as is", without warranty of any kind (see the GPL-2.0, sections 11
-and 12).
-
-## What worked on real hardware
-
-| Component | Status |
+| Feature | Status |
 |---|---|
-| Kernel (UBports `android15-6.6-halium`, 6.6.x GKI) + vendor modules | ✅ 0 KMI CRC mismatches across 592 modules |
-| Halium 14 GSI container on an Android 16 vendor | ✅ with compatibility patches |
-| Display (composer3), Lomiri UI, brightness | ✅ see notes: `free()` shim, `mi_display` backlight |
-| Touch | ✅ |
-| Wi-Fi | ❌ did not work; the cause was found in the logs and a fix is in the source, untested ([details](docs/DEVELOPMENT-NOTES.md#why-wi-fi-did-not-work-log-analysis-2026-10-09)) |
-| Modem / SIM detection | ✅ ICCID read; calls and data not tested |
-| Battery (`mtk_battery_manager` CRC fix) | ✅ |
-| Reset after ~140 s (MediaTek MKP, `pid_max`) | ✅ fixed |
-| Audio, camera, fingerprint, VoLTE | ❌ not attempted |
-| Switching OS without a computer (via OrangeFox) | ❌ unfinished; the phone fell into a BROM loop |
+| Boot (slot B, next to HyperOS) | ✅ |
+| Display, brightness, 60/120 Hz | ✅ |
+| GPU (Mali-G720 through libhybris) | ✅ |
+| Touch, keys, vibration | ✅ |
+| CPU at full clocks | ✅ (vendor boot caps lifted) |
+| Battery and charging | ✅ a full day of daily use |
+| Sleep (suspend) | ❔ untested |
+| Wi-Fi, Bluetooth (incl. headphones), USB networking | ✅ |
+| SIM, mobile data, SMS, calls, microphone | ✅ |
+| Loudspeaker, earpiece | ✅ |
+| Ambient light sensor, automatic brightness | ✅ |
+| Ear detection in calls | 🟡 from the light sensor; the ultrasound proximity sensor is not supported |
+| Fingerprint | ✅ (Ubuntu Touch / Lomiri) |
+| Rear RGB light (KleeToys app) | ✅ |
+| Flashlight | ✅ |
+| GPS | ❌ broken for now |
+| Cameras | ❌ not in ztOS yet |
+| Waydroid (Android 16) | 🟡 GPU, touch and audio work; video playback and camera don't |
+| Flatpak apps (Bazaar) | 🟡 run on the GPU; installing apps being tested |
 
 ## ⚠️ Read this before you start
 
@@ -109,18 +111,14 @@ Once Ubuntu Touch is up, connect with `ssh -p 8022 root@10.15.19.82` (USB NCM).
 
 Installation (dual boot or standalone) and switching steps: [release/README.md](release/README.md).
 
-## Next steps (for whoever picks this up)
+## Next steps
 
-- **Switching OS without a computer.** The active slot's `boot` partition cannot be written
-  while Android is running. Two options:
-  - (a) Write it from OrangeFox recovery, using `android-side/klee-switch.sh` and the hybrid
-    `vendor_boot` (`tools/make-hybrid-vendor-boot-ramdisk.py`). In the last attempt the phone
-    rebooted during the write and fell into a BROM loop. The cause was not found.
-  - (b) The slot method: an Axion copy plus the Ubuntu Touch boot images on the inactive slot `_a`.
-- **Audio:** vendor AIDL audio core v2/v3 ↔ pulseaudio-droid / audiosystem-passthrough.
-- **Wi-Fi:** the chip was switched on too early, before the vendor NVRAM was loaded. The fixed
-  `wifi-on` script is in the source but untested; the v0.1 `ubuntu.img` still has the old one.
-- **Remaining hardware:** camera, fingerprint, calls and data, power management.
+- **Arch Linux ARM rewrite** of the whole port, with the install scripts for the HyperOS dual
+  boot.
+- Waydroid video playback; GPS; cameras in ztOS.
+
+The old notes for the first release (OrangeFox switching, AxionAOSP) are in
+[docs/DEVELOPMENT-NOTES.md](docs/DEVELOPMENT-NOTES.md).
 
 ## Banners
 
@@ -133,8 +131,8 @@ use for posts about the project:
 
 ## Credits
 
-UBports (halium-gki, kernel-android-common), Halium, the OrangeFox klee maintainers and the
-AxionAOSP klee maintainer.
+UBports (halium-gki, kernel-android-common), Halium, libhybris, ztOS (Zerone Laboratories), Waydroid,
+the OrangeFox klee maintainers and the AxionAOSP klee maintainer.
 
 ## License
 
